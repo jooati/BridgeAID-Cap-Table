@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BridgeAID — Ownership Dashboard</title>
+<!--
+  BridgeAID milestone-aware ownership/equity dashboard. Single self-contained file.
+  External libs (CDN, degrade gracefully if blocked): html2canvas + jsPDF for PNG/PDF.
+  Charts are hand-drawn SVG (no chart lib) so exports capture exactly what's on screen.
+
+  ====================== MODEL: TYPE × MEMBER × TIME ======================
+  THREE axes. Type-level is the source of truth; milestones are the time axis.
+
+  MILESTONES M1..M5 (index 0..4) — the time axis.
+    Every value-bearing input has 5 milestone values shown side by side.
+
+  INHERITANCE vs OVERRIDE (the core rule):
+    We store ONLY overrides, never inherited copies. For any per-milestone value
+    `effective(arr, m)` walks backward from m to the nearest milestone that has an
+    explicit value; if none exists it falls back to the seed/default (M1 baseline).
+    => M1 holds the baseline; M2..M5 inherit by default.
+    => Editing an earlier milestone flows into every later milestone that is still
+       inherited (un-overridden).
+    => Typing into Mk stores Mk's own value; Mk stops inheriting, and later
+       milestones now inherit from Mk (nearest-defined-predecessor). Predictable.
+    Inherited cells render muted; explicitly-set cells render solid + have a reset (×).
+
+  TWO-LEVEL RECONCILIATION, evaluated INDEPENDENTLY per milestone:
+    Level 1 TYPES: one STARRED type = 100 - sum(other three)  => types sum to 100.
+    Level 2 MEMBERS: even split of type% by default; non-starred members may be
+      overridden (absolute %); one STARRED member per type = type% - sum(others).
+    If overrides exceed the type %, the starred value goes negative => per-type
+    warning + highlight (state shown honestly, never faked).
+    Result: every milestone reconciles to exactly 100.00%.
+    NOTE: starredType and memberStar[type] are STRUCTURAL (not per-milestone) so the
+    reconciliation rule is identical across the whole time axis.
+
+  COLOR: one hue per type (Original=blue, BME=maroon, VC=gold, ESOP=green); members
+  get an HSL lightness ramp around the base — grouped yet distinct, used everywhere.
+  ========================================================================
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#222A35; --navy-2:#2E3A48; --slate:#5B6878; --slate-light:#8A95A3;
+    --gold:#FFC000; --gold-soft:#FFD862; --white:#fff;
+    --paper:#F7F8FA; --line:#E3E7ED;
+    --danger:#C2453A; --danger-bg:#FBEAE8;
+    --shadow:0 1px 2px rgba(34,42,53,.06),0 8px 24px rgba(34,42,53,.06);
+    --r:12px; font-synthesis-weight:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--paper);color:var(--navy);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  header.topbar{background:var(--navy);color:var(--white);padding:20px 32px;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+  .brand{display:flex;align-items:baseline;gap:14px;}
+  .brand h1{font-size:23px;font-weight:700;margin:0;letter-spacing:.2px;}
+  .brand h1 .ai{color:var(--gold);}
+  .brand .sub{color:var(--slate-light);font-size:13px;}
+  .topbar .actions{display:flex;gap:10px;flex-wrap:wrap;}
+  button{font-family:inherit;cursor:pointer;border:0;border-radius:8px;font-size:13.5px;font-weight:600;
+    padding:9px 15px;transition:background .15s,border-color .15s,color .15s,transform .05s;}
+  button:active{transform:translateY(1px);}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .btn-gold{background:var(--gold);color:var(--navy);} .btn-gold:hover{background:var(--gold-soft);}
+  .btn-ghost{background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.22);}
+  .btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+  main{max-width:1320px;margin:0 auto;padding:26px 28px 60px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+  .card-head{padding:16px 20px 0;}
+  .card-head h2{margin:0;font-size:14px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--slate);}
+  .card-head p{margin:4px 0 0;font-size:12.5px;color:var(--slate-light);}
+  .card-body{padding:16px 20px 20px;}
+  .stack{display:flex;flex-direction:column;gap:22px;}
+
+  .field label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--slate-light);font-weight:600;margin-bottom:6px;}
+  .field input{width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:8px;color:var(--navy);background:#fff;}
+  .field input:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,192,0,.18);}
+  .field .title-in{font-size:18px;font-weight:700;}
+
+  /* milestone definition area */
+  .ms-defs{display:grid;grid-template-columns:1fr;gap:12px;}
+  .ms-def{display:grid;grid-template-columns:40px 1fr 220px;gap:12px;align-items:start;
+    border:1px solid var(--line);border-radius:10px;padding:12px;}
+  .ms-def .badge{background:var(--navy);color:#fff;font-weight:700;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:14px;height:38px;}
+  .ms-def textarea{width:100%;font-family:inherit;font-size:13.5px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;color:var(--navy);resize:vertical;min-height:38px;line-height:1.4;}
+  .ms-def .cv-wrap{position:relative;}
+  .ms-def .cv-wrap .cur{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--slate-light);font-weight:600;}
+  .ms-def .cv-wrap input{width:100%;font-family:inherit;font-size:14px;font-weight:600;text-align:right;
+    font-variant-numeric:tabular-nums;padding:9px 11px 9px 24px;border:1px solid var(--line);border-radius:8px;color:var(--navy);}
+  .ms-def .cv-wrap label{position:absolute;top:-8px;left:10px;background:#fff;padding:0 4px;font-size:10px;}
+
+  /* milestone column headers used by type & member rows */
+  .ms-grid-head{display:grid;gap:6px;align-items:center;margin-bottom:6px;}
+  .ms-grid-head .ms-h{font-size:10.5px;font-weight:700;letter-spacing:.4px;color:var(--slate-light);
+    text-align:center;text-transform:uppercase;}
+
+  /* 5-up milestone cells */
+  .ms5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .mcell{position:relative;}
+  .mcell input{width:100%;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
+    padding:6px 16px 6px 5px;border:1px solid var(--line);border-radius:6px;color:var(--navy);font-size:12.5px;background:#fff;}
+  .mcell input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  .mcell input.inherited{color:var(--slate-light);background:#FBFCFD;border-style:dashed;}
+  .mcell input:read-only{background:#FFF8E1;border-color:var(--gold);color:var(--navy);font-weight:700;cursor:default;}
+  .mcell input.neg{background:var(--danger-bg);border-color:var(--danger);color:var(--danger);}
+  .mcell .sfx{position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--slate-light);font-size:10px;pointer-events:none;}
+  .mcell .rst{position:absolute;left:-2px;top:-7px;width:15px;height:15px;border-radius:50%;border:1px solid var(--line);
+    background:#fff;color:var(--slate-light);font-size:10px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .mcell.set .rst{display:flex;}
+  .mcell .rst:hover{border-color:var(--danger);color:var(--danger);}
+
+  /* type allocation */
+  .type-block{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+  .type-block .tb-head{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;padding:9px 12px;color:#fff;}
+  .type-block .tb-head .nm{font-weight:700;font-size:14px;letter-spacing:.3px;display:flex;align-items:center;gap:8px;}
+  .type-block .star{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
+    border-radius:6px;padding:3px 6px;display:inline-flex;align-items:center;}
+  .type-block .star.active{background:var(--gold);border-color:var(--gold);color:var(--navy);}
+  .type-block .tb-body{padding:10px 12px;background:#fff;display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;}
+  .type-block .tb-label{font-size:11.5px;color:var(--slate-light);font-weight:600;}
+  .type-warn{display:none;grid-column:1/-1;font-size:11.5px;color:var(--danger);background:var(--danger-bg);
+    border:1px solid var(--danger);border-radius:6px;padding:6px 8px;line-height:1.35;}
+  .type-warn.show{display:block;}
+
+  /* totals strip shared style — used by BOTH type and member sections (consistent hierarchy) */
+  .totals-strip{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;
+    background:var(--navy);color:#fff;border-radius:10px;padding:10px 12px;margin-top:6px;}
+  .totals-strip .l{font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--slate-light);font-weight:600;}
+  .totals-strip .ms5 .tv{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;}
+  .totals-strip .ms5 .tv.bad{color:var(--gold);}
+
+  /* members */
+  .mgroup{border:1px solid var(--line);border-radius:10px;padding:6px 12px 10px;margin-bottom:12px;}
+  .mgroup .gh{display:flex;align-items:center;gap:8px;padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+  .mgroup .gh .dot{width:11px;height:11px;border-radius:3px;}
+  .mgroup .gh .gn{font-weight:700;font-size:13px;}
+  .m-row{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;padding:5px 0;}
+  .m-row .who{display:flex;align-items:center;gap:7px;min-width:0;}
+  .m-row .who .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto;}
+  .m-row .who input.nm{flex:1;min-width:0;font-family:inherit;font-size:13px;font-weight:500;
+    padding:5px 7px;border:1px solid transparent;border-radius:6px;color:var(--navy);background:transparent;}
+  .m-row .who input.nm:hover{border-color:var(--line);}
+  .m-row .who input.nm:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  .m-row .who .star-btn{background:transparent;padding:2px;border-radius:5px;display:flex;color:var(--slate-light);border:1px solid transparent;}
+  .m-row .who .star-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .m-row .who .star-btn.active{color:var(--gold);} .m-row .who .star-btn.active svg{fill:var(--gold);}
+
+  .diagram-title{font-size:22px;font-weight:700;color:var(--navy);margin:2px 0 0;}
+
+  /* chart grid: one row per milestone, A & B side by side */
+  .ms-row{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;}
+  .ms-row .msr-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+  .ms-row .msr-head .tag{background:var(--navy);color:#fff;font-weight:700;font-size:12px;padding:3px 9px;border-radius:6px;letter-spacing:.5px;}
+  .ms-row .msr-head .desc{font-size:13px;color:var(--navy);font-weight:600;flex:1;min-width:120px;}
+  .ms-row .msr-head .cv{font-size:12.5px;color:var(--slate);font-variant-numeric:tabular-nums;font-weight:600;}
+  .ms-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:860px){.ms-charts{grid-template-columns:1fr;}}
+  .chart-cell{text-align:center;}
+  .chart-cell .ct{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);margin-bottom:2px;}
+  .chart-cell svg{max-width:100%;height:auto;}
+  .empty-chart{padding:48px 12px;text-align:center;color:var(--slate-light);font-size:13px;}
+
+  /* cap table */
+  .capwrap{overflow-x:auto;}
+  table{border-collapse:collapse;font-size:12.5px;width:100%;min-width:760px;}
+  thead th{text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--slate-light);
+    font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  thead th.l{text-align:left;}
+  thead tr.ms-th th{text-align:center;color:var(--navy);font-size:11px;border-bottom:0;padding-bottom:2px;}
+  tbody td{padding:7px 9px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+  tbody td.l{text-align:left;}
+  tbody tr:hover{background:#FAFBFC;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;color:#fff;}
+  .pill .pd{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.85);}
+  .tag-rem{font-size:9px;font-weight:700;color:var(--gold);background:var(--navy);padding:1px 5px;border-radius:4px;margin-left:5px;letter-spacing:.4px;}
+  tbody tr.type-sep td{background:#F2F4F7;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--slate);text-align:left;}
+  th.ms-divider,td.ms-divider{border-left:2px solid var(--line);}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Bridge<span class="ai">AID</span></h1>
+    <span class="sub">Ownership &amp; Equity Dashboard</span>
+  </div>
+  <div class="actions">
+    <button class="btn-ghost" onclick="exportCSV()">Export CSV</button>
+    <button class="btn-ghost" onclick="exportPNG()">Export PNG</button>
+    <button class="btn-gold" onclick="exportPDF()">Export PDF</button>
+  </div>
+</header>
+
+<main id="capture">
+  <div class="stack">
+
+    <!-- 1. Title -->
+    <section class="card">
+      <div class="card-body">
+        <div class="field">
+          <label for="diagTitle">Diagram title</label>
+          <input id="diagTitle" class="title-in" type="text" value="BridgeAID — Cap Table Evolution" oninput="onTitle()">
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Milestone definitions -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Milestones</h2>
+        <p>Define the five stages and the company value at each. Company value, type %, and member % all carry five milestone values; later milestones inherit earlier ones until you override them.</p>
+      </div>
+      <div class="card-body">
+        <div class="ms-defs" id="msDefs"></div>
+      </div>
+    </section>
+
+    <!-- 3. Type allocation -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Type allocation</h2>
+        <p>Each type's share of the whole, per milestone. The starred (✱) type auto-balances so the four sum to 100.00% in every milestone.</p>
+      </div>
+      <div class="card-body" id="typeSection"></div>
+    </section>
+
+    <!-- 4. Members -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Members</h2>
+        <p>Names are editable. Each type splits evenly by default; override any member and the starred (✱) member absorbs the difference. Values are absolute (share of the whole), per milestone.</p>
+      </div>
+      <div class="card-body" id="memberSection"></div>
+    </section>
+
+    <!-- 5. Charts: 5 milestones × 2 -->
+    <section class="card">
+      <div class="card-body">
+        <div class="diagram-title" id="diagramHeading">BridgeAID — Cap Table Evolution</div>
+        <p class="card-head" style="padding:0;margin:4px 0 14px;color:var(--slate-light);font-size:12.5px;">Left: all owners (with value). Right: original owners re-normalised to 100%.</p>
+        <div id="chartGrid"></div>
+      </div>
+    </section>
+
+    <!-- 6. Cap table -->
+    <section class="card">
+      <div class="card-head"><h2>Cap table</h2><p>Every owner across all five milestones — percentage and value at each. Grouped and colour-coded by type.</p></div>
+      <div class="card-body" style="padding-top:8px;">
+        <div class="capwrap"><table id="capTable"></table></div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+/* ===================== CONSTANTS ===================== */
+const NM = 5;                                   // number of milestones
+const MS = [0,1,2,3,4];
+const TYPES = [
+  {key:'Original', label:'Original', base:'#2F5C9E'},
+  {key:'BME',      label:'BME',      base:'#8C2F39'},
+  {key:'VC',       label:'VC',       base:'#FFC000'},
+  {key:'ESOP',     label:'ESOP',     base:'#2E7D5B'},
+];
+
+/* members: id + editable name + type (order within type drives the shade) */
+let members = [
+  {id:'JAL', name:'JAL',  type:'Original'},
+  {id:'KA',  name:'KÁ',   type:'Original'},
+  {id:'KD',  name:'KD',   type:'Original'},
+  {id:'KB',  name:'KB',   type:'Original'},
+  {id:'SZB', name:'SZB',  type:'Original'},
+  {id:'VI',  name:'VI',   type:'Original'},
+  {id:'BME', name:'BME',  type:'BME'},
+  {id:'VC1', name:'VC 1', type:'VC'},
+  {id:'VC2', name:'VC 2', type:'VC'},
+  {id:'VC3', name:'VC 3', type:'VC'},
+  {id:'VC4', name:'VC 4', type:'VC'},
+  {id:'ESOP1', name:'ESOP 1', type:'ESOP'},
+  {id:'ESOP2', name:'ESOP 2', type:'ESOP'},
+  {id:'ESOP3', name:'ESOP 3', type:'ESOP'},
+  {id:'ESOP4', name:'ESOP 4', type:'ESOP'},
+];
+
+/* ---------- STATE (overrides only; undefined => inherit) ----------
+   Per-milestone arrays of length NM. */
+let msDesc = ['Founding','Pre-seed','Seed','Series A','Series B'];
+let companyVal = [1000000, undefined, undefined, undefined, undefined];      // M1 seed only
+let typePct = MS.map(m => m===0 ? {Original:100, BME:0, VC:0, ESOP:0} : {}); // M1 seed; others empty (inherit)
+let memberOverride = MS.map(()=> ({}));                                       // {id:%} per milestone
+
+/* STRUCTURAL (not per-milestone) */
+let starredType = 'Original';
+let memberStar = {Original:'JAL', BME:'BME', VC:'VC1', ESOP:'ESOP1'};
+
+/* ===================== INHERITANCE PRIMITIVE =====================
+   Walk backward from milestone m to the nearest milestone with an explicit
+   value in `arr` (arr[i] !== undefined). If none, return seedFallback.
+   `isSetAt(arr,m)` tells whether m itself holds an explicit (own) value. */
+function effective(arr, m, seedFallback){
+  for(let i=m;i>=0;i--){ if(arr[i]!==undefined && arr[i]!==null) return arr[i]; }
+  return seedFallback;
+}
+function isSetAt(arr, m){ return arr[m]!==undefined && arr[m]!==null; }
+
+// per-milestone effective company value (fallback 0)
+function effCompanyVal(m){ return effective(companyVal, m, 0); }
+// per-milestone effective type % for a type (fallback 0)
+function effTypePct(m, key){
+  const arr = MS.map(i => typePct[i][key]);   // build a thin view across milestones
+  return effective(arr, m, 0);
+}
+function typeSetAt(m, key){ return typePct[m][key]!==undefined && typePct[m][key]!==null; }
+// per-milestone effective member override (undefined => no override => even split)
+function effMemberOv(m, id){
+  const arr = MS.map(i => memberOverride[i][id]);
+  return effective(arr, m, undefined);
+}
+function memberSetAt(m, id){ return memberOverride[m][id]!==undefined && memberOverride[m][id]!==null; }
+
+/* ===================== COLOR ===================== */
+function hexToHsl(hex){let n=parseInt(hex.slice(1),16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255;
+  let mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,s,h;
+  if(mx===mn){h=s=0;}else{let d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=(g-b)/d+(g<b?6:0);else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;}return[h*360,s*100,l*100];}
+function hslToHex(h,s,l){h/=360;s/=100;l/=100;let r,g,b;
+  if(s===0){r=g=b=l;}else{const hue=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+    const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;r=hue(p,q,h+1/3);g=hue(p,q,h);b=hue(p,q,h-1/3);}
+  const to=v=>Math.round(v*255).toString(16).padStart(2,'0');return '#'+to(r)+to(g)+to(b);}
+function shadeFor(typeKey, idx, count){
+  const base=TYPES.find(t=>t.key===typeKey).base; let [h,s,l]=hexToHsl(base);
+  if(count<=1) return base;
+  const SP=26, st=l-SP/2, step=SP/(count-1); let li=Math.max(26,Math.min(78, st+step*idx));
+  return hslToHex(h,s,li);
+}
+function membersOf(typeKey){ return members.filter(m=>m.type===typeKey); }
+function memberColor(id){ const m=members.find(x=>x.id===id),grp=membersOf(m.type); return shadeFor(m.type, grp.indexOf(m), grp.length); }
+function ink(hex){let n=parseInt(hex.slice(1),16);return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))>150?'#222A35':'#fff';}
+
+/* ===================== NUMBERS (2 decimals) ===================== */
+const r2=v=>Math.round(v*100)/100;
+const fmt=v=>r2(v).toFixed(2);
+const money=v=>'€'+r2(v).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* ===================== RECONCILIATION (per milestone) =====================
+   Level 1: starred type = 100 - sum(other effective type %s). */
+function resolveTypes(m){
+  let others=0; TYPES.forEach(t=>{ if(t.key!==starredType) others+=effTypePct(m,t.key); });
+  const out={}; TYPES.forEach(t=> out[t.key]= t.key===starredType ? (100-others) : effTypePct(m,t.key));
+  return {pct:out, invalid: out[starredType] < -1e-9};
+}
+/* Level 2: member abs %s within a type for milestone m.
+   non-starred: override if set (effective), else even split type%/count.
+   starred: type% - sum(others). */
+function resolveMembers(m, typeKey, typePctValue){
+  const grp=membersOf(typeKey), starId=memberStar[typeKey], n=grp.length, shares={};
+  let assigned=0, even = n>0 ? typePctValue/n : 0;
+  grp.forEach(mem=>{
+    if(mem.id===starId) return;
+    const ov=effMemberOv(m, mem.id);
+    const val=(ov===undefined||ov===null||isNaN(ov)) ? even : ov;
+    shares[mem.id]=val; assigned+=val;
+  });
+  const starVal=typePctValue-assigned; if(starId) shares[starId]=starVal;
+  return {shares, invalid: starId ? (starVal<-1e-9) : false};
+}
+/* all member abs shares for milestone m */
+function allShares(m){
+  const {pct}=resolveTypes(m); const shares={}, perType={};
+  TYPES.forEach(t=>{ const r=resolveMembers(m,t.key,pct[t.key]); perType[t.key]={pctVal:pct[t.key],...r}; Object.assign(shares,r.shares); });
+  return {pct, shares, perType};
+}
+/* original owners re-normalised to 100% among themselves (Chart B) */
+function originalNormalised(shares){
+  const grp=membersOf('Original'); const sum=grp.reduce((a,mm)=>a+Math.max(0,shares[mm.id]||0),0);
+  return grp.map(mm=>({...mm, abs:shares[mm.id]||0, intra: sum>0 ? Math.max(0,shares[mm.id]||0)/sum*100 : 0}));
+}
+
+/* ===================== RENDER: milestone defs ===================== */
+function renderMsDefs(){
+  document.getElementById('msDefs').innerHTML = MS.map(m=>{
+    const cvSet=isSetAt(companyVal,m), cv=effCompanyVal(m);
+    return `<div class="ms-def">
+      <div class="badge">M${m+1}</div>
+      <textarea data-ms="${m}" placeholder="Describe milestone ${m+1}" oninput="onMsDesc(${m},this.value)">${msDesc[m]||''}</textarea>
+      <div class="cv-wrap">
+        <label>Company value${cvSet?'':' · inherited'}</label>
+        <span class="cur">€</span>
+        <input type="number" min="0" step="1000" value="${r2(cv)}" data-cv="${m}"
+               style="${cvSet?'':'color:var(--slate-light);border-style:dashed'}"
+               oninput="onCompanyVal(${m},this.value)" aria-label="M${m+1} company value">
+      </div>
+    </div>`;
+  }).join('');
+}
+function onMsDesc(m,v){ msDesc[m]=v; renderCharts(); renderCapTable(); }
+function onCompanyVal(m,v){
+  companyVal[m] = (v===''?undefined:parseFloat(v));    // empty clears override -> inherit
+  refresh();
+}
+
+/* ===================== RENDER: milestone column header ===================== */
+function msHeadRow(leadCols){
+  // leadCols = grid-template-columns prefix matching the row layout
+  return `<div class="ms-grid-head" style="grid-template-columns:${leadCols} repeat(5,1fr)">
+    <div></div>${MS.map(m=>`<div class="ms-h">M${m+1}</div>`).join('')}</div>`;
+}
+
+/* a 5-up milestone cell block.
+   getVal(m)->number, isSet(m)->bool, readonly(m)->bool, neg(m)->bool
+   onInput(m,val), onReset(m) */
+function ms5Block(idBase, getVal, isSet, readonly, neg, kind){
+  return `<div class="ms5">${MS.map(m=>{
+    const ro=readonly(m), set=isSet(m);
+    return `<div class="mcell ${set&&!ro?'set':''}">
+      <input type="number" step="0.01" ${kind==='pct'?'min="0" max="100"':'min="0"'}
+        value="${fmt(getVal(m))}" ${ro?'readonly tabindex="-1"':''}
+        class="${ro?'':(set?'':'inherited')} ${neg(m)?'neg':''}"
+        data-cell="${idBase}" data-m="${m}">
+      <span class="sfx">%</span>
+      <button class="rst" title="Reset to inherited" data-reset="${idBase}" data-m="${m}">×</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ===================== RENDER: type allocation ===================== */
+function renderTypes(){
+  const host=document.getElementById('typeSection');
+  let html = msHeadRow('160px');
+  TYPES.forEach(t=>{
+    const isStar=t.key===starredType;
+    html += `<div class="type-block">
+      <div class="tb-head" style="background:${t.base}">
+        <div class="nm">${t.label}
+          <button class="star ${isStar?'active':''}" title="${isStar?'Balancing type':'Make balancing type'}"
+            onclick="setStarType('${t.key}')" aria-label="Set ${t.label} as balancing type">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="${isStar?'currentColor':'none'}" stroke="currentColor" stroke-width="1.7">
+              <path d="M12 2l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.8 6.1 20.8l1.3-6.6L2.5 9.6l6.6-.8z"/></svg>
+          </button>
+        </div>
+        <div></div>
+      </div>
+      <div class="tb-body">
+        <div class="tb-label">Share of whole</div>
+        ${ms5Block('type:'+t.key,
+            m=>resolveTypes(m).pct[t.key],
+            m=>typeSetAt(m,t.key),
+            m=>isStar,                              // starred type is read-only at every milestone
+            m=>isStar && resolveTypes(m).invalid,
+            'pct')}
+        <div class="type-warn ${MS.some(m=>allShares(m).perType[t.key].invalid)?'show':''}">
+          Members exceed this type's allocation in at least one milestone — the starred member can't go negative.</div>
+      </div>
+    </div>`;
+  });
+  // members-of-type totals reuse the SAME strip style as the grand total below
+  html += `<div class="totals-strip">
+    <span class="l">Grand total</span>
+    ${`<div class="ms5">${MS.map(m=>{
+        const {shares,perType}=allShares(m);
+        const tot=members.reduce((a,mm)=>a+(shares[mm.id]||0),0);
+        const bad=TYPES.some(t=>perType[t.key].invalid)||resolveTypes(m).invalid;
+        return `<div class="tv ${bad?'bad':''}">${fmt(tot)}%</div>`;
+      }).join('')}</div>`}
+  </div>`;
+  host.innerHTML = html;
+  wireCells(host);
+}
+function setStarType(key){ starredType=key; refresh(); }
+
+/* ===================== RENDER: members ===================== */
+function renderMembers(){
+  const host=document.getElementById('memberSection');
+  let html = msHeadRow('160px');
+  TYPES.forEach(t=>{
+    const grp=membersOf(t.key);
+    html += `<div class="mgroup">
+      <div class="gh"><span class="dot" style="background:${t.base}"></span><span class="gn">${t.label}</span></div>`;
+    grp.forEach(mem=>{
+      const isStar=mem.id===memberStar[t.key];
+      html += `<div class="m-row">
+        <div class="who">
+          <span class="sw" style="background:${memberColor(mem.id)}"></span>
+          <input class="nm" type="text" value="${mem.name.replace(/"/g,'&quot;')}" data-name="${mem.id}"
+                 oninput="onName('${mem.id}',this.value)" aria-label="Name for ${mem.id}">
+          <button class="star-btn ${isStar?'active':''}" title="${isStar?'Balancing member':'Make balancing member'}"
+            onclick="setStarMember('${t.key}','${mem.id}')" aria-label="Set as balancing member">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="${isStar?'currentColor':'none'}" stroke="currentColor" stroke-width="1.6">
+              <path d="M12 2l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.8 6.1 20.8l1.3-6.6L2.5 9.6l6.6-.8z"/></svg>
+          </button>
+        </div>
+        ${ms5Block('mem:'+mem.id,
+            m=>allShares(m).perType[t.key].shares[mem.id]||0,
+            m=>memberSetAt(m,mem.id),
+            m=>isStar,                              // starred member read-only at every milestone
+            m=>isStar && allShares(m).perType[t.key].invalid,
+            'pct')}
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  // MEMBERS TOTAL — same prominent strip as the type grand total (consistent hierarchy)
+  html += `<div class="totals-strip">
+    <span class="l">Members total</span>
+    ${`<div class="ms5">${MS.map(m=>{
+        const {shares,perType}=allShares(m);
+        const tot=members.reduce((a,mm)=>a+(shares[mm.id]||0),0);
+        const bad=TYPES.some(t=>perType[t.key].invalid);
+        return `<div class="tv ${bad?'bad':''}">${fmt(tot)}%</div>`;
+      }).join('')}</div>`}
+  </div>`;
+  host.innerHTML = html;
+  wireCells(host);
+}
+function onName(id,v){
+  const m=members.find(x=>x.id===id); if(m) m.name=v;
+  renderCharts(); renderCapTable();          // names propagate to charts/table/exports (exports read members[])
+}
+function setStarMember(typeKey,id){
+  memberStar[typeKey]=id;
+  MS.forEach(m=> delete memberOverride[m][id]);   // newly-starred member is computed at all milestones
+  refresh();
+}
+
+/* shared cell wiring: edits + per-cell reset for both type & member blocks */
+function wireCells(host){
+  host.querySelectorAll('input[data-cell]:not([readonly])').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const cell=e.target.dataset.cell, m=+e.target.dataset.m;
+      let v=parseFloat(e.target.value); v=isNaN(v)?0:v;
+      applyCell(cell,m,v);
+      refreshSoft();
+    });
+  });
+  host.querySelectorAll('button[data-reset]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const cell=e.currentTarget.dataset.reset, m=+e.currentTarget.dataset.m;
+      clearCell(cell,m);
+      refresh();
+    });
+  });
+}
+// set an explicit override on a milestone cell
+function applyCell(cell,m,v){
+  if(cell.startsWith('type:')){ typePct[m][cell.slice(5)] = v; }
+  else if(cell.startsWith('mem:')){ memberOverride[m][cell.slice(4)] = v; }
+}
+// clear a cell back to inherited
+function clearCell(cell,m){
+  if(cell.startsWith('type:')){ delete typePct[m][cell.slice(5)]; }
+  else if(cell.startsWith('mem:')){ delete memberOverride[m][cell.slice(4)]; }
+}
+
+/* ===================== DONUT with on-slice + leader-line labels ===================== */
+/* items=[{name,value,color,money?}]. Small slices (<MINPCT) get outside labels
+   with leader lines, de-overlapped vertically on each side. */
+function donutSVG(items, centerBig, centerSmall, withMoney){
+  const W=420,H=300, cx=W/2, cy=H/2, rO=92, rI=54;
+  const total=items.reduce((a,d)=>a+Math.max(0,d.value),0);
+  if(total<=0) return `<svg viewBox="0 0 ${W} ${H}" width="100%"><foreignObject x="0" y="0" width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" class="empty-chart">No allocation in this milestone.</div></foreignObject></svg>`;
+  const MINPCT=0.05;                      // slices below 5% -> outside label w/ leader
+  let ang=-Math.PI/2; const arc=(r,a)=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];
+  let slices='', inside='', outside=[];
+  items.forEach(d=>{
+    const v=Math.max(0,d.value); if(v<=0) return;
+    const frac=v/total, a0=ang, a1=ang+frac*2*Math.PI, mid=(a0+a1)/2; ang=a1;
+    const large=(a1-a0)>Math.PI?1:0;
+    const [x0o,y0o]=arc(rO,a0),[x1o,y1o]=arc(rO,a1),[x0i,y0i]=arc(rI,a0),[x1i,y1i]=arc(rI,a1);
+    if(frac>0.9999) slices+=`<circle cx="${cx}" cy="${cy}" r="${(rO+rI)/2}" fill="none" stroke="${d.color}" stroke-width="${rO-rI}"/>`;
+    else slices+=`<path d="M${x0o} ${y0o} A${rO} ${rO} 0 ${large} 1 ${x1o} ${y1o} L${x1i} ${y1i} A${rI} ${rI} 0 ${large} 0 ${x0i} ${y0i} Z" fill="${d.color}" stroke="#fff" stroke-width="1.5"/>`;
+    const label = `${d.name} · ${fmt(frac*100)}%`;
+    if(frac>=MINPCT){
+      // inside label centred on the ring
+      const [lx,ly]=arc((rO+rI)/2, mid);
+      inside += `<text x="${lx}" y="${ly}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${ink(d.color)}">
+        <tspan x="${lx}" dy="0">${esc(d.name)}</tspan><tspan x="${lx}" dy="10">${fmt(frac*100)}%</tspan>${withMoney&&d.money?`<tspan x="${lx}" dy="10" font-size="8" font-weight="600">${esc(d.money)}</tspan>`:''}</text>`;
+    } else {
+      // collect for outside placement
+      const side = Math.cos(mid)>=0?1:-1;
+      const [ex,ey]=arc(rO, mid);
+      // ey0 = the fixed point on the slice edge; ey gets shifted by de-overlap below
+      outside.push({side, mid, ex, ey, ey0:ey, color:d.color, text:label, money:withMoney?d.money:''});
+    }
+  });
+
+  // de-overlap outside labels per side: sort by y, push apart by min gap
+  const GAP = withMoney?22:13, lblX={[-1]:18,[1]:W-18};
+  [-1,1].forEach(side=>{
+    let group=outside.filter(o=>o.side===side).sort((a,b)=>a.ey-b.ey);
+    for(let i=1;i<group.length;i++){ if(group[i].ey - group[i-1].ey < GAP) group[i].ey = group[i-1].ey + GAP; }
+    // keep within canvas
+    const overflow = group.length? Math.max(0, group[group.length-1].ey - (H-12)) : 0;
+    if(overflow>0) group.forEach(o=>o.ey-=overflow);
+    group.forEach(o=>{
+      const tx = lblX[side], anchor = side===1?'end':'start';
+      const elbowX = cx + (rO+14)*Math.cos(o.mid);
+      slices += `<polyline points="${o.ex},${o.ey0} ${elbowX},${o.ey} ${tx + (side===1?-2:2)},${o.ey}"
+                  fill="none" stroke="${o.color}" stroke-width="1"/>`;
+      inside += `<text x="${tx}" y="${o.ey}" text-anchor="${anchor}" font-size="8.5" font-weight="700" fill="var(--navy)">
+        <tspan x="${tx}" dy="0">${esc(o.text)}</tspan>${o.money?`<tspan x="${tx}" dy="9" font-size="7.5" font-weight="600" fill="var(--slate)">${esc(o.money)}</tspan>`:''}</text>`;
+    });
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">
+    ${slices}${inside}
+    <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--navy)">${esc(centerBig)}</text>
+    <text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="8" fill="var(--slate-light)" letter-spacing="0.5">${esc(centerSmall)}</text>
+  </svg>`;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ===================== RENDER: 10 charts ===================== */
+function renderCharts(){
+  const grid=document.getElementById('chartGrid');
+  grid.innerHTML = MS.map(m=>{
+    const {shares}=allShares(m); const cv=effCompanyVal(m);
+    const dataA=members.map(mm=>{const val=Math.max(0,shares[mm.id]||0);
+      return {name:mm.name, value:val, color:memberColor(mm.id), money:money(cv*val/100)};});
+    const norm=originalNormalised(shares);
+    const dataB=norm.map(o=>({name:members.find(x=>x.id===o.id).name, value:o.intra, color:memberColor(o.id)}));
+    return `<div class="ms-row">
+      <div class="msr-head">
+        <span class="tag">M${m+1}</span>
+        <span class="desc">${esc(msDesc[m]||'')}</span>
+        <span class="cv">${money(cv)}</span>
+      </div>
+      <div class="ms-charts">
+        <div class="chart-cell"><div class="ct">All owners</div>${donutSVG(dataA,'M'+(m+1),'ALL · 100%',true)}</div>
+        <div class="chart-cell"><div class="ct">Original owners (re-normalised)</div>${donutSVG(dataB,'M'+(m+1),'ORIG · 100%',false)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ===================== RENDER: milestone-aware cap table ===================== */
+function renderCapTable(){
+  const per = MS.map(m=>({...allShares(m), cv:effCompanyVal(m)}));
+  let head = `<thead>
+    <tr class="ms-th"><th class="l"></th><th class="l"></th>${MS.map(m=>`<th colspan="2" class="ms-divider">M${m+1}</th>`).join('')}</tr>
+    <tr><th class="l">Owner</th><th class="l">Type</th>${MS.map(()=>`<th class="ms-divider">%</th><th>Value</th>`).join('')}</tr>
+  </thead>`;
+  let body='';
+  TYPES.forEach(t=>{
+    body += `<tr class="type-sep"><td class="l" colspan="${2+NM*2}">${t.label}</td></tr>`;
+    membersOf(t.key).forEach(mem=>{
+      const isStar=mem.id===memberStar[t.key];
+      let cells='';
+      MS.forEach(m=>{
+        const val=per[m].shares[mem.id]||0;
+        cells += `<td class="ms-divider">${fmt(val)}%</td><td>${money(per[m].cv*val/100)}</td>`;
+      });
+      body += `<tr>
+        <td class="l">${esc(mem.name)}${isStar?'<span class="tag-rem">BAL</span>':''}</td>
+        <td class="l"><span class="pill" style="background:${t.base}"><span class="pd"></span>${t.label}</span></td>
+        ${cells}</tr>`;
+    });
+  });
+  // totals row
+  let tot=`<tr style="font-weight:700"><td class="l">Total</td><td class="l"></td>`;
+  MS.forEach(m=>{ const s=per[m].shares; const sum=members.reduce((a,mm)=>a+(s[mm.id]||0),0);
+    tot+=`<td class="ms-divider">${fmt(sum)}%</td><td>${money(per[m].cv)}</td>`; });
+  tot+=`</tr>`;
+  document.getElementById('capTable').innerHTML = head + `<tbody>${body}${tot}</tbody>`;
+}
+
+/* ===================== TITLE ===================== */
+function onTitle(){ document.getElementById('diagramHeading').textContent=document.getElementById('diagTitle').value||'BridgeAID'; }
+
+/* ===================== REFRESH =====================
+   refresh()     full rebuild (structure/stars/names/resets/company value)
+   refreshSoft() recompute computed cells (starred + inherited) without rebuilding
+                 inputs, so typing keeps the caret. We update displayed values in
+                 place, then refresh charts + table. */
+function refresh(){ renderMsDefs(); renderTypes(); renderMembers(); renderCharts(); renderCapTable(); }
+function refreshSoft(){
+  // update every non-focused cell's displayed value + inherited/neg classes in place
+  document.querySelectorAll('input[data-cell]').forEach(inp=>{
+    if(inp===document.activeElement) return;
+    const cell=inp.dataset.cell, m=+inp.dataset.m;
+    let val, set, neg=false, ro=inp.hasAttribute('readonly');
+    if(cell.startsWith('type:')){ const k=cell.slice(5); val=resolveTypes(m).pct[k]; set=typeSetAt(m,k);
+      neg = (k===starredType)&&resolveTypes(m).invalid; }
+    else { const id=cell.slice(4); const mem=members.find(x=>x.id===id); const pt=allShares(m).perType[mem.type];
+      val=pt.shares[id]||0; set=memberSetAt(m,id); neg=(id===memberStar[mem.type])&&pt.invalid; }
+    inp.value=fmt(val);
+    inp.classList.toggle('inherited', !ro && !set);
+    inp.classList.toggle('neg', neg);
+    const wrap=inp.closest('.mcell'); if(wrap) wrap.classList.toggle('set', set && !ro);
+  });
+  // totals strips
+  document.querySelectorAll('.totals-strip').forEach(strip=>{
+    const tvs=strip.querySelectorAll('.tv');
+    MS.forEach(m=>{ const {shares,perType}=allShares(m);
+      const tot=members.reduce((a,mm)=>a+(shares[mm.id]||0),0);
+      const bad=TYPES.some(t=>perType[t.key].invalid)||resolveTypes(m).invalid;
+      if(tvs[m]){ tvs[m].textContent=fmt(tot)+'%'; tvs[m].classList.toggle('bad',bad); } });
+  });
+  renderCharts(); renderCapTable();
+}
+
+/* ===================== EXPORTS ===================== */
+function exportCSV(){
+  const per=MS.map(m=>({...allShares(m), cv:effCompanyVal(m)}));
+  const header=['Owner','Type','Balancing'];
+  MS.forEach(m=>{ header.push(`M${m+1} %`, `M${m+1} Value (EUR)`); });
+  const rows=[header];
+  // milestone descriptions + company values as leading metadata rows
+  rows.push(['# Milestone descriptions']);
+  MS.forEach(m=> rows.push([`M${m+1}`, (msDesc[m]||''), '', '', money(per[m].cv)]));
+  rows.push([]);
+  TYPES.forEach(t=> membersOf(t.key).forEach(mem=>{
+    const row=[mem.name, t.label, mem.id===memberStar[t.key]?'yes':'no'];
+    MS.forEach(m=>{ const val=per[m].shares[mem.id]||0; row.push(fmt(val), fmt(per[m].cv*val/100)); });
+    rows.push(row);
+  }));
+  const csv=rows.map(r=>r.map(c=>{c=String(c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\r\n');
+  dl(new Blob([csv],{type:'text/csv;charset=utf-8;'}),'BridgeAID_ownership_milestones.csv');
+}
+function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);}
+async function snap(){
+  if(typeof html2canvas==='undefined'){alert('Image export needs html2canvas, which couldn’t load (offline/blocked). CSV still works.');return null;}
+  return await html2canvas(document.getElementById('capture'),{scale:2,backgroundColor:'#F7F8FA',useCORS:true,windowWidth:document.getElementById('capture').scrollWidth});
+}
+async function exportPNG(){const c=await snap();if(!c)return;c.toBlob(b=>dl(b,'BridgeAID_ownership_milestones.png'));}
+async function exportPDF(){
+  const c=await snap();if(!c)return;
+  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF export needs jsPDF, which couldn’t load. Use PNG or CSV.');return;}
+  const {jsPDF}=window.jspdf; const img=c.toDataURL('image/png');
+  const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+  const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight(), m=22;
+  const imgW=pw-2*m, imgH=imgW*c.height/c.width;       // full-width fit
+  let y=m, remaining=imgH, sy=0;                         // paginate tall capture across pages
+  const pageH=ph-2*m;
+  while(remaining>0){
+    // draw a vertical slice of the canvas onto this page
+    const sliceH = Math.min(pageH, remaining);
+    const srcH = sliceH * c.width/imgW;
+    const tmp=document.createElement('canvas'); tmp.width=c.width; tmp.height=srcH;
+    tmp.getContext('2d').drawImage(c,0,sy,c.width,srcH,0,0,c.width,srcH);
+    pdf.addImage(tmp.toDataURL('image/png'),'PNG',m,m,imgW,sliceH);
+    remaining-=sliceH; sy+=srcH;
+    if(remaining>0) pdf.addPage();
+  }
+  pdf.save('BridgeAID_ownership_milestones.pdf');
+}
+
+/* init */
+refresh();
+</script>
+</body>
+</html>
