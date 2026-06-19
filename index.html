@@ -70,6 +70,16 @@
   .btn-gold{background:var(--gold);color:var(--navy);} .btn-gold:hover{background:var(--gold-soft);}
   .btn-ghost{background:transparent;color:var(--white);border:1px solid rgba(255,255,255,.22);}
   .btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+  .btn-danger{border-color:rgba(194,69,58,.5);color:#F3B4AE;}
+  .btn-danger:hover{border-color:var(--danger);color:#fff;background:rgba(194,69,58,.25);}
+  /* non-destructive toast (load errors / confirmations) */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;box-shadow:var(--shadow);
+    font-size:13.5px;max-width:90vw;z-index:1000;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+    border:1px solid rgba(255,255,255,.15);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .toast.err{border-color:var(--danger);background:#3a2422;}
+  .toast.ok{border-color:#2E7D5B;}
   main{max-width:1320px;margin:0 auto;padding:26px 28px 60px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
   .card-head{padding:16px 20px 0;}
@@ -185,6 +195,79 @@
   .tag-rem{font-size:9px;font-weight:700;color:var(--gold);background:var(--navy);padding:1px 5px;border-radius:4px;margin-left:5px;letter-spacing:.4px;}
   tbody tr.type-sep td{background:#F2F4F7;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--slate);text-align:left;}
   th.ms-divider,td.ms-divider{border-left:2px solid var(--line);}
+
+  /* ============================ RESPONSIVE ============================
+     Breakpoint plan:
+       >960px  : full desktop (defaults above)
+       ≤960px  : tighten page padding, charts already stack at 860
+       ≤720px  : input rows (type/member/totals) become horizontally
+                 scrollable units — the 5 M-columns keep alignment via a
+                 min-width on .ms5 rather than crushing; touch targets grow
+       ≤560px  : milestone-def row stacks; chart rows full-width SVG
+       ≤400px  : 360px-safe — fluid type, no clipping
+     The 10 charts already collapse to a single column at ≤860px (.ms-charts),
+     so on phones every chart is full-width and large enough to read labels. */
+
+  /* fluid type/spacing tokens */
+  .diagram-title{font-size:clamp(18px,4.5vw,22px);}
+  .card-head h2{font-size:clamp(13px,3.4vw,14px);}
+
+  @media(max-width:960px){
+    main{padding:20px 16px 50px;}
+    .card-body{padding:14px 14px 16px;}
+  }
+
+  /* ≤720px: make the M1–M5 field rows scroll horizontally as a unit.
+     A wrapper (.row-scroll) gets overflow-x; the inner grid keeps its
+     5 columns at a readable min size so milestone alignment never breaks. */
+  @media(max-width:720px){
+    .row-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+    .row-scroll::-webkit-scrollbar{height:6px;}
+    .row-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+    /* the header + each data row share one min-width so columns line up */
+    /* everything inside a scrolled section shares one min-width so the
+       160px label + 5 columns line up identically across header and rows */
+    .row-scroll > *{min-width:430px;}
+    .ms-grid-head{min-width:430px;}
+    .ms5{min-width:300px;}
+    .mcell input{padding:9px 18px 9px 6px;font-size:13px;}   /* taller touch target */
+    .mcell .rst{width:18px;height:18px;}
+
+    /* type block: label column shrinks, body scrolls */
+    .type-block .tb-head{grid-template-columns:1fr;gap:6px;}
+    .type-block .tb-body{grid-template-columns:120px 1fr;gap:8px;}
+    .totals-strip{grid-template-columns:120px 1fr;gap:8px;}
+    .m-row{grid-template-columns:130px 1fr;gap:8px;}
+    .ms-def{grid-template-columns:34px 1fr;}                  /* badge + textarea */
+    .ms-def .cv-wrap{grid-column:1/-1;}                       /* value drops below */
+  }
+
+  /* ≤560px */
+  @media(max-width:560px){
+    header.topbar{padding:16px;}
+    .topbar .actions{width:100%;gap:8px;}
+    .topbar .actions button{flex:1 1 auto;min-width:calc(50% - 8px);}
+    .ms-row{padding:10px;}
+    .ms-row .msr-head .desc{flex-basis:100%;}
+    /* charts already single-column (<860); ensure SVG fills width */
+    .chart-cell svg{width:100%;}
+    /* stack type/member row label above its fields for breathing room */
+    .type-block .tb-body{grid-template-columns:1fr;}
+    .type-block .tb-label{margin-bottom:-2px;}
+    .totals-strip{grid-template-columns:1fr;text-align:left;}
+    .m-row{grid-template-columns:1fr;}
+    .m-row .who{padding-bottom:2px;}
+  }
+
+  /* ≤400px: 360-safe */
+  @media(max-width:400px){
+    .brand h1{font-size:20px;}
+    .brand .sub{display:none;}
+    .topbar .actions button{font-size:12.5px;padding:8px 10px;}
+    .ms-grid-head{min-width:380px;}
+    .ms5{min-width:280px;}
+  }
+
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
 </head>
@@ -196,11 +279,18 @@
     <span class="sub">Ownership &amp; Equity Dashboard</span>
   </div>
   <div class="actions">
-    <button class="btn-ghost" onclick="exportCSV()">Export CSV</button>
+    <button class="btn-gold" onclick="loadExample()" title="Populate with demo data">Load example</button>
+    <button class="btn-ghost" onclick="saveStateFile()" title="Download full state as .json">Save .json</button>
+    <button class="btn-ghost" onclick="document.getElementById('loadFile').click()" title="Restore state from a .json file">Load .json</button>
+    <input id="loadFile" type="file" accept="application/json,.json" style="display:none" onchange="loadStateFile(this)">
+    <button class="btn-ghost" onclick="exportCSV()" title="Cap-table report (not a state file)">Export CSV</button>
     <button class="btn-ghost" onclick="exportPNG()">Export PNG</button>
-    <button class="btn-gold" onclick="exportPDF()">Export PDF</button>
+    <button class="btn-ghost" onclick="exportPDF()">Export PDF</button>
+    <button class="btn-ghost btn-danger" onclick="resetState()" title="Wipe saved state">Reset</button>
   </div>
 </header>
+<!-- non-destructive toast for load errors / confirmations -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <main id="capture">
   <div class="stack">
@@ -405,7 +495,7 @@ function renderMsDefs(){
     </div>`;
   }).join('');
 }
-function onMsDesc(m,v){ msDesc[m]=v; renderCharts(); renderCapTable(); }
+function onMsDesc(m,v){ msDesc[m]=v; renderCharts(); renderCapTable(); scheduleSave(); }
 function onCompanyVal(m,v){
   companyVal[m] = (v===''?undefined:parseFloat(v));    // empty clears override -> inherit
   refresh();
@@ -438,7 +528,9 @@ function ms5Block(idBase, getVal, isSet, readonly, neg, kind){
 /* ===================== RENDER: type allocation ===================== */
 function renderTypes(){
   const host=document.getElementById('typeSection');
-  let html = msHeadRow('160px');
+  // .row-scroll wraps the header + all rows so they share one scroll context and
+  // one min-width on narrow screens — milestone columns stay aligned.
+  let html = '<div class="row-scroll">' + msHeadRow('160px');
   TYPES.forEach(t=>{
     const isStar=t.key===starredType;
     html += `<div class="type-block">
@@ -475,6 +567,7 @@ function renderTypes(){
         return `<div class="tv ${bad?'bad':''}">${fmt(tot)}%</div>`;
       }).join('')}</div>`}
   </div>`;
+  html += '</div>'; // close .row-scroll
   host.innerHTML = html;
   wireCells(host);
 }
@@ -483,7 +576,7 @@ function setStarType(key){ starredType=key; refresh(); }
 /* ===================== RENDER: members ===================== */
 function renderMembers(){
   const host=document.getElementById('memberSection');
-  let html = msHeadRow('160px');
+  let html = '<div class="row-scroll">' + msHeadRow('160px');
   TYPES.forEach(t=>{
     const grp=membersOf(t.key);
     html += `<div class="mgroup">
@@ -521,12 +614,13 @@ function renderMembers(){
         return `<div class="tv ${bad?'bad':''}">${fmt(tot)}%</div>`;
       }).join('')}</div>`}
   </div>`;
+  html += '</div>'; // close .row-scroll
   host.innerHTML = html;
   wireCells(host);
 }
 function onName(id,v){
   const m=members.find(x=>x.id===id); if(m) m.name=v;
-  renderCharts(); renderCapTable();          // names propagate to charts/table/exports (exports read members[])
+  renderCharts(); renderCapTable(); scheduleSave();   // names propagate to charts/table/exports
 }
 function setStarMember(typeKey,id){
   memberStar[typeKey]=id;
@@ -676,14 +770,14 @@ function renderCapTable(){
 }
 
 /* ===================== TITLE ===================== */
-function onTitle(){ document.getElementById('diagramHeading').textContent=document.getElementById('diagTitle').value||'BridgeAID'; }
+function onTitle(){ document.getElementById('diagramHeading').textContent=document.getElementById('diagTitle').value||'BridgeAID'; scheduleSave(); }
 
 /* ===================== REFRESH =====================
    refresh()     full rebuild (structure/stars/names/resets/company value)
    refreshSoft() recompute computed cells (starred + inherited) without rebuilding
                  inputs, so typing keeps the caret. We update displayed values in
                  place, then refresh charts + table. */
-function refresh(){ renderMsDefs(); renderTypes(); renderMembers(); renderCharts(); renderCapTable(); }
+function refresh(){ renderMsDefs(); renderTypes(); renderMembers(); renderCharts(); renderCapTable(); scheduleSave(); }
 function refreshSoft(){
   // update every non-focused cell's displayed value + inherited/neg classes in place
   document.querySelectorAll('input[data-cell]').forEach(inp=>{
@@ -707,7 +801,7 @@ function refreshSoft(){
       const bad=TYPES.some(t=>perType[t.key].invalid)||resolveTypes(m).invalid;
       if(tvs[m]){ tvs[m].textContent=fmt(tot)+'%'; tvs[m].classList.toggle('bad',bad); } });
   });
-  renderCharts(); renderCapTable();
+  renderCharts(); renderCapTable(); scheduleSave();
 }
 
 /* ===================== EXPORTS ===================== */
@@ -756,8 +850,270 @@ async function exportPDF(){
   pdf.save('BridgeAID_ownership_milestones.pdf');
 }
 
-/* init */
-refresh();
+/* ============================================================================
+   STATE PERSISTENCE  (client-side only — works on GitHub Pages, no backend)
+   ----------------------------------------------------------------------------
+   Two complementary mechanisms over ONE serialized shape:
+     1. Auto-save to localStorage, debounced, on every change; restored on load.
+     2. Explicit Save/Load to a .json file for lossless, portable round-trips.
+   Both go through serializeState()/applyState() so there's a single source of
+   truth and the two mechanisms can't diverge. The cap-table CSV stays separate
+   (it's a report, not a state file).
+
+   SCHEMA (versioned, defensive on load):
+     {
+       schema : "bridgeaid-dashboard",
+       version: SCHEMA_VERSION,
+       savedAt: ISO string,
+       state  : {
+         title         : string,
+         members       : [{id,name,type}],         // order + editable names
+         msDesc        : [5 strings],
+         companyVal    : [5 × (number|null)],       // null = inherited (M>1)
+         typePct       : [5 × {typeKey:number}],    // sparse: only SET cells present
+         memberOverride: [5 × {memberId:number}],   // sparse: only overrides present
+         starredType   : string,
+         memberStar    : {typeKey:memberId}
+       }
+     }
+   The inheritance dirty-flag is encoded by PRESENCE: a key present at milestone m
+   means "explicitly set here"; absent means "inherit". That mirrors the live model
+   (undefined === inherit), so serialize/deserialize round-trips losslessly.
+   ========================================================================== */
+const SCHEMA_NAME = 'bridgeaid-dashboard';
+const SCHEMA_VERSION = 3;
+const LS_KEY = 'bridgeaid:dashboard:v3';
+
+/* undefined -> null for JSON (companyVal); sparse maps drop undefined keys. */
+function serializeState(){
+  return {
+    schema: SCHEMA_NAME,
+    version: SCHEMA_VERSION,
+    savedAt: new Date().toISOString(),
+    state: {
+      title: document.getElementById('diagTitle').value,
+      members: members.map(m=>({id:m.id, name:m.name, type:m.type})),
+      msDesc: msDesc.slice(0, NM),
+      companyVal: companyVal.map(v => (v===undefined||v===null)? null : v),
+      // strip undefined so only explicitly-set cells are persisted (dirty flags)
+      typePct: typePct.map(o=>{ const out={}; for(const k in o) if(o[k]!==undefined&&o[k]!==null) out[k]=o[k]; return out; }),
+      memberOverride: memberOverride.map(o=>{ const out={}; for(const k in o) if(o[k]!==undefined&&o[k]!==null) out[k]=o[k]; return out; }),
+      starredType,
+      memberStar: {...memberStar}
+    }
+  };
+}
+
+/* Validate + apply a parsed payload. Returns {ok, msg}. NEVER mutates live
+   state unless the payload passes validation (non-destructive on bad input). */
+function applyState(payload, {persist=true}={}){
+  // ---- structural validation ----
+  if(!payload || typeof payload!=='object') return {ok:false, msg:'Not a valid state file.'};
+  if(payload.schema && payload.schema!==SCHEMA_NAME) return {ok:false, msg:'This file isn’t a BridgeAID dashboard state file.'};
+  if(typeof payload.version==='number' && payload.version>SCHEMA_VERSION)
+    return {ok:false, msg:`File is from a newer version (v${payload.version}); this page supports up to v${SCHEMA_VERSION}.`};
+  const s = payload.state;
+  if(!s || typeof s!=='object') return {ok:false, msg:'State file is missing its data.'};
+
+  // ---- defensive field-by-field read with sane defaults ----
+  try{
+    const safeMembers = Array.isArray(s.members) && s.members.length
+      ? s.members.filter(m=>m&&m.id&&m.type).map(m=>({id:String(m.id), name:String(m.name??m.id), type:String(m.type)}))
+      : null;
+    if(!safeMembers || !safeMembers.length) return {ok:false, msg:'State file has no valid members.'};
+    // every member's type must be one of the four fixed types
+    const validTypes = new Set(TYPES.map(t=>t.key));
+    if(!safeMembers.every(m=>validTypes.has(m.type))) return {ok:false, msg:'State file references an unknown owner type.'};
+
+    const padArr = (arr,fill)=>{ const a=Array.isArray(arr)?arr.slice(0,NM):[]; while(a.length<NM)a.push(fill); return a; };
+
+    const newMsDesc = padArr(s.msDesc,'').map(v=>v==null?'':String(v));
+    const newCompanyVal = padArr(s.companyVal,null).map(v=> (v===null||v===undefined)? undefined : (isNaN(+v)?undefined:+v));
+    // M1 must have a company value to anchor inheritance; default if absent
+    if(newCompanyVal[0]===undefined) newCompanyVal[0]=0;
+
+    const newTypePct = padArr(s.typePct,{}).map(o=>{
+      const out={}; if(o&&typeof o==='object') for(const k in o){ if(validTypes.has(k)&&!isNaN(+o[k])) out[k]=+o[k]; } return out;
+    });
+    const idSet = new Set(safeMembers.map(m=>m.id));
+    const newMemberOverride = padArr(s.memberOverride,{}).map(o=>{
+      const out={}; if(o&&typeof o==='object') for(const k in o){ if(idSet.has(k)&&!isNaN(+o[k])) out[k]=+o[k]; } return out;
+    });
+
+    const newStarredType = validTypes.has(s.starredType)? s.starredType : TYPES[0].key;
+    // memberStar: one valid member id per type (fall back to first member of type)
+    const newMemberStar={};
+    TYPES.forEach(t=>{
+      const grp=safeMembers.filter(m=>m.type===t.key);
+      const want = s.memberStar && s.memberStar[t.key];
+      newMemberStar[t.key] = (grp.find(m=>m.id===want)?.id) || (grp[0]?.id) || null;
+    });
+
+    // ---- commit (all-or-nothing) ----
+    members = safeMembers;
+    msDesc = newMsDesc;
+    companyVal = newCompanyVal;
+    typePct = newTypePct;
+    memberOverride = newMemberOverride;
+    starredType = newStarredType;
+    memberStar = newMemberStar;
+    document.getElementById('diagTitle').value = (s.title!=null? String(s.title) : 'BridgeAID — Cap Table Evolution');
+
+    onTitle();
+    refresh();
+    if(persist) saveNow();
+    return {ok:true};
+  }catch(err){
+    return {ok:false, msg:'Could not read the state file: '+(err&&err.message||err)};
+  }
+}
+
+/* ---- localStorage auto-save (debounced) ---- */
+let _saveTimer=null;
+function scheduleSave(){
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveNow, 400);   // debounce bursts of edits
+}
+function saveNow(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(serializeState())); }
+  catch(e){ /* private mode / quota: fail silently, file save still available */ }
+}
+function restoreFromLocalStorage(){
+  let raw; try{ raw=localStorage.getItem(LS_KEY); }catch(e){ return false; }
+  if(!raw) return false;
+  let parsed; try{ parsed=JSON.parse(raw); }catch(e){ return false; }
+  const res=applyState(parsed,{persist:false});   // don't immediately rewrite on restore
+  return res.ok;
+}
+
+/* ---- explicit file Save / Load ---- */
+function saveStateFile(){
+  const blob=new Blob([JSON.stringify(serializeState(),null,2)],{type:'application/json'});
+  const stamp=new Date().toISOString().slice(0,10);
+  dl(blob, `BridgeAID_state_${stamp}.json`);
+  toast('Saved state to file.','ok');
+}
+function loadStateFile(input){
+  const file=input.files&&input.files[0]; input.value='';   // reset so same file re-triggers
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let parsed;
+    try{ parsed=JSON.parse(reader.result); }
+    catch(e){ toast('That file isn’t valid JSON — your current dashboard is unchanged.','err'); return; }
+    const res=applyState(parsed);
+    if(res.ok) toast('Dashboard loaded from file.','ok');
+    else toast(res.msg+' Your current dashboard is unchanged.','err');
+  };
+  reader.onerror=()=>toast('Couldn’t read that file.','err');
+  reader.readAsText(file);
+}
+
+/* ---- reset / clear saved state ---- */
+function resetState(){
+  if(!confirm('Reset the dashboard to a clean slate? This clears auto-saved state in this browser. (Export a .json first if you want to keep it.)')) return;
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  applyState(emptyState(), {persist:false});
+  toast('Dashboard reset to a clean slate.','ok');
+}
+
+/* ============================================================================
+   DEFAULT / EXAMPLE / EMPTY STATES
+   First visit (no localStorage) starts CLEAN — we do not auto-inject demo data.
+   "Load example" populates representative data on demand.
+   ========================================================================== */
+function emptyState(){
+  // clean slate: original 6 owners + placeholder slots, Original starred at 100%,
+  // single company value at M1, everything else inheriting.
+  return { schema:SCHEMA_NAME, version:SCHEMA_VERSION, state:{
+    title:'BridgeAID — Cap Table Evolution',
+    members:[
+      {id:'JAL',name:'JAL',type:'Original'},{id:'KA',name:'KÁ',type:'Original'},
+      {id:'KD',name:'KD',type:'Original'},{id:'KB',name:'KB',type:'Original'},
+      {id:'SZB',name:'SZB',type:'Original'},{id:'VI',name:'VI',type:'Original'},
+      {id:'BME',name:'BME',type:'BME'},
+      {id:'VC1',name:'VC 1',type:'VC'},{id:'VC2',name:'VC 2',type:'VC'},
+      {id:'VC3',name:'VC 3',type:'VC'},{id:'VC4',name:'VC 4',type:'VC'},
+      {id:'ESOP1',name:'ESOP 1',type:'ESOP'},{id:'ESOP2',name:'ESOP 2',type:'ESOP'},
+      {id:'ESOP3',name:'ESOP 3',type:'ESOP'},{id:'ESOP4',name:'ESOP 4',type:'ESOP'},
+    ],
+    msDesc:['Founding','Pre-seed','Seed','Series A','Series B'],
+    companyVal:[1000000,null,null,null,null],
+    typePct:[{Original:100,BME:0,VC:0,ESOP:0},{},{},{},{}],
+    memberOverride:[{},{},{},{},{}],
+    starredType:'Original',
+    memberStar:{Original:'JAL',BME:'BME',VC:'VC1',ESOP:'ESOP1'}
+  }};
+}
+
+/* Representative demo: a believable dilution story across 5 rounds, exercising
+   inheritance (later milestones inherit) plus a few explicit overrides. */
+function exampleState(){
+  return { schema:SCHEMA_NAME, version:SCHEMA_VERSION, state:{
+    title:'BridgeAID — Funding Journey (Example)',
+    members:[
+      {id:'JAL',name:'JAL',type:'Original'},{id:'KA',name:'KÁ',type:'Original'},
+      {id:'KD',name:'KD',type:'Original'},{id:'KB',name:'KB',type:'Original'},
+      {id:'SZB',name:'SZB',type:'Original'},{id:'VI',name:'VI',type:'Original'},
+      {id:'BME',name:'BME',type:'BME'},
+      {id:'VC1',name:'Seed Fund',type:'VC'},{id:'VC2',name:'Lead A',type:'VC'},
+      {id:'VC3',name:'Follow A',type:'VC'},{id:'VC4',name:'Strategic B',type:'VC'},
+      {id:'ESOP1',name:'ESOP Pool',type:'ESOP'},{id:'ESOP2',name:'Eng Hire',type:'ESOP'},
+      {id:'ESOP3',name:'Sales Hire',type:'ESOP'},{id:'ESOP4',name:'Reserve',type:'ESOP'},
+    ],
+    msDesc:[
+      'Founding — 6 founders, equal split',
+      'Pre-seed — BME spin-off stake + first ESOP',
+      'Seed — seed fund enters, ESOP grows',
+      'Series A — lead + follow-on, founders diluted',
+      'Series B — strategic investor, full ESOP'
+    ],
+    companyVal:[1000000, 1500000, 4000000, 12000000, 30000000],
+    // VC is the starred (balancing) type so it absorbs; we set Original/BME/ESOP.
+    // Milestones not listed for a type inherit the previous milestone's value.
+    typePct:[
+      {Original:100, BME:0,  ESOP:0},                 // M1 founders only (VC star=0)
+      {Original:88,  BME:7,  ESOP:5},                 // M2 BME + ESOP appear (VC star=0)
+      {Original:70,  BME:6,  ESOP:9},                 // M3 seed round (VC star=15)
+      {Original:52,  BME:5,  ESOP:11},                // M4 Series A (VC star=32)
+      {Original:40,  BME:4,  ESOP:13},                // M5 Series B (VC star=43)
+    ],
+    // a couple of explicit member overrides to show non-even distribution
+    memberOverride:[
+      {},
+      {},
+      {VC1:15, VC2:0, VC3:0},                          // M3: seed fund takes the whole 15% VC (VC4 star=0)
+      {VC1:10, VC2:16, VC3:6},                         // M4: VC split across funds (VC4 star=rest)
+      {VC1:8,  VC2:14, VC3:10, VC4:11},                // M5: explicit full VC split
+    ],
+    starredType:'VC',
+    memberStar:{Original:'JAL', BME:'BME', VC:'VC4', ESOP:'ESOP1'}
+  }};
+}
+function loadExample(){
+  if(hasSavedState() && !confirm('Load example data? This replaces the current dashboard (your auto-saved state will be overwritten — export a .json first to keep it).')) return;
+  const res=applyState(exampleState());
+  if(res.ok) toast('Example data loaded.','ok');
+}
+function hasSavedState(){ try{ return !!localStorage.getItem(LS_KEY); }catch(e){ return false; } }
+
+/* ---- toast (non-destructive messaging) ---- */
+let _toastTimer=null;
+function toast(msg, kind){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(kind?(' '+kind):'');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{ el.className='toast'+(kind?(' '+kind):''); }, 4200);
+}
+
+/* ===================== BOOT =====================
+   Restore auto-saved state if present; otherwise start from a clean slate
+   (NO demo data on first visit — "Load example" is one click away). */
+function boot(){
+  const restored = restoreFromLocalStorage();
+  if(!restored){ applyState(emptyState(), {persist:false}); }   // clean start, don't persist yet
+}
+boot();
 </script>
 </body>
 </html>
