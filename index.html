@@ -333,6 +333,74 @@
     .ms5{min-width:280px;}
   }
 
+  /* ===================== TASK DIVISION TAB ===================== */
+  .td-intro-wrap{border:1px solid var(--line);border-radius:10px;margin-bottom:18px;overflow:hidden;}
+  .td-intro-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#F7F8FA;border-bottom:1px solid var(--line);}
+  .td-intro-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--slate-light);font-weight:700;}
+  .btn-quiet{background:#fff;border:1px solid var(--line);color:var(--slate);border-radius:7px;padding:5px 12px;font-size:12.5px;font-weight:600;}
+  .btn-quiet:hover{border-color:var(--gold);color:var(--navy);}
+  .td-intro{padding:14px 16px;font-size:13.5px;line-height:1.55;color:var(--navy);}
+  .td-intro p{margin:0 0 9px;} .td-intro ul{margin:0 0 9px;padding-left:20px;} .td-intro li{margin:3px 0;}
+  .td-intro .td-note{font-size:12px;color:var(--slate-light);font-style:italic;}
+  .td-intro[contenteditable="true"]{outline:2px solid var(--gold);outline-offset:2px;background:#FFFEF8;border-radius:6px;}
+
+  .td-result{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+  .td-result .tr-head{background:var(--navy);color:#fff;padding:10px 14px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .td-result .tr-head .tr-total{font-size:12px;color:var(--slate-light);font-weight:600;}
+  .td-result .tr-scroll{overflow-x:auto;}
+  .td-result table{width:100%;border-collapse:collapse;min-width:520px;}
+  .td-result th,.td-result td{padding:9px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+  .td-result th.l,.td-result td.l{text-align:left;}
+  .td-result thead th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--slate-light);font-weight:600;}
+  .td-result td.pct{font-weight:700;font-size:15px;color:var(--navy);}
+  .td-result td.wt{color:var(--slate);}
+  .td-result tfoot td{font-weight:700;background:#F7F8FA;}
+  .td-result tfoot td.bad{color:var(--danger);}
+
+  .td-group{margin-bottom:20px;}
+  .td-group-head{display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:2px solid var(--navy);margin-bottom:12px;}
+  .td-group-head .gtag{background:var(--navy);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;letter-spacing:.5px;text-transform:uppercase;flex:0 0 auto;}
+  .td-group-head input{flex:1;min-width:0;font-family:inherit;font-size:16px;font-weight:700;color:var(--navy);border:1px solid transparent;border-radius:7px;padding:6px 9px;background:transparent;}
+  .td-group-head input:hover{border-color:var(--line);} .td-group-head input:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(255,192,0,.18);}
+  .td-group-head .gwt{font-size:12px;color:var(--slate-light);font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+
+  .td-cat{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden;}
+  .td-cat-head{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F2F4F7;border-bottom:1px solid var(--line);}
+  .td-cat-head .ctag{font-size:11px;font-weight:700;color:var(--slate);background:#fff;border:1px solid var(--line);padding:2px 8px;border-radius:5px;flex:0 0 auto;}
+  .td-cat-head input.cat-name{flex:1;min-width:0;font-family:inherit;font-size:14px;font-weight:700;color:var(--navy);border:1px solid transparent;border-radius:6px;padding:5px 8px;background:transparent;}
+  .td-cat-head input.cat-name:hover{border-color:var(--line);} .td-cat-head input.cat-name:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  .td-cat-head .cat-wt{font-size:12px;color:var(--slate);font-weight:700;font-variant-numeric:tabular-nums;flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px 9px;}
+  .td-cat-body{padding:6px 12px 12px;overflow-x:auto;}
+
+  table.td-subtable{width:100%;border-collapse:collapse;min-width:640px;font-size:12.5px;}
+  table.td-subtable th{font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--slate-light);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;}
+  table.td-subtable th.l{text-align:left;}
+  table.td-subtable td{padding:5px 6px;border-bottom:1px solid #F0F2F5;vertical-align:middle;}
+  table.td-subtable td.l{text-align:left;}
+  table.td-subtable input.sub-name{width:100%;min-width:200px;font-family:inherit;font-size:12.5px;border:1px solid transparent;border-radius:5px;padding:5px 6px;color:var(--navy);background:transparent;}
+  table.td-subtable input.sub-name:hover{border-color:var(--line);} table.td-subtable input.sub-name:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  table.td-subtable input.sub-wt{width:52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:5px 6px;color:var(--navy);}
+  table.td-subtable input.sub-wt:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  table.td-subtable .owncell{position:relative;white-space:nowrap;}
+  table.td-subtable input.own-pct{width:62px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:5px;padding:5px 16px 5px 5px;color:var(--navy);}
+  table.td-subtable input.own-pct:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,192,0,.18);}
+  table.td-subtable input.own-pct:read-only{background:#FFF8E1;border-color:var(--gold);font-weight:700;cursor:default;}
+  table.td-subtable input.own-pct.neg{background:var(--danger-bg);border-color:var(--danger);color:var(--danger);}
+  table.td-subtable .owncell .sfx{position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--slate-light);font-size:9px;pointer-events:none;}
+  table.td-subtable .star-btn{background:transparent;border:1px solid transparent;border-radius:5px;padding:2px;color:var(--slate-light);display:inline-flex;cursor:pointer;}
+  table.td-subtable .star-btn:hover{border-color:var(--gold);color:var(--gold);}
+  table.td-subtable .star-btn.active{color:var(--gold);} table.td-subtable .star-btn.active svg{fill:var(--gold);}
+  .sub-warn{display:none;font-size:11px;color:var(--danger);background:var(--danger-bg);border:1px solid var(--danger);border-radius:6px;padding:4px 8px;margin:2px 0;}
+  .sub-warn.show{display:block;}
+  .td-row-del{background:transparent;border:1px solid transparent;color:var(--slate-light);border-radius:5px;padding:3px 6px;cursor:pointer;font-size:14px;line-height:1;}
+  .td-row-del:hover{border-color:var(--danger);color:var(--danger);}
+  .td-add-sub{margin-top:8px;background:#fff;border:1px dashed var(--line);color:var(--slate);border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;}
+  .td-add-sub:hover{border-color:var(--gold);color:var(--navy);}
+  .td-add-sub:disabled{opacity:.45;cursor:not-allowed;}
+  .td-add-cat{background:#fff;border:1px dashed var(--line);color:var(--slate);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;}
+  .td-add-cat:hover{border-color:var(--gold);color:var(--navy);}
+  @media(max-width:560px){ .td-group-head input{font-size:15px;} .td-cat-head{flex-wrap:wrap;} }
+
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
 </head>
@@ -405,13 +473,27 @@
       </div>
     </section>
 
-    <!-- ===== TAB 3: Task Division & Ownership Share (placeholder) ===== -->
+    <!-- ===== TAB 3: Task Division & Ownership Share ===== -->
     <section class="card tab-panel" id="tab-task-division" role="tabpanel" hidden>
-      <div class="card-body placeholder">
+      <div class="card-head">
         <h2>Task Division &amp; Ownership Share</h2>
-        <p class="lede">The division of responsibilities among owners and the associated ownership shares will be presented here.</p>
-        <span class="soon">Coming soon</span>
-        <div class="content-slot"><!-- future rich content --></div>
+        <p>A weighted contribution model: each subcategory has a weight and a per-owner % split (summing to 100%). Per category we aggregate weight × owner-share, sum across categories per person, then normalise to each person's % of the total weight. This tab is standalone — independent of the ownership percentages on the other tabs.</p>
+      </div>
+      <div class="card-body">
+        <!-- Editable intro (rich text via contenteditable; persists with state) -->
+        <div class="td-intro-wrap">
+          <div class="td-intro-head">
+            <span class="td-intro-label">Introduction</span>
+            <button class="btn-quiet td-intro-edit" onclick="toggleIntroEdit()" id="introEditBtn">Edit</button>
+          </div>
+          <div id="taskIntro" class="td-intro" aria-label="Task division introduction"></div>
+        </div>
+
+        <!-- Headline per-person result (share of total weight) -->
+        <div id="taskResult" class="td-result"></div>
+
+        <!-- Group → category → subcategory editor -->
+        <div id="taskGroups"></div>
       </div>
     </section>
 
@@ -496,6 +578,67 @@ let msDesc = ['Founding','Pre-seed','Seed','Series A','Series B'];
 let companyVal = [1000000, undefined, undefined, undefined, undefined];      // M1 seed only
 let typePct = MS.map(m => m===0 ? {Original:100, BME:0, VC:0, ESOP:0} : {}); // M1 seed; others empty (inherit)
 let memberOverride = MS.map(()=> ({}));                                       // {id:%} per milestone
+
+
+/* ============================================================================
+   TASK DIVISION — weighted contribution model (standalone; reuses member roster)
+   Seed structure + English translations extracted from the source spreadsheet.
+   ========================================================================== */
+const TASK_SEED = {"introText": "<p><strong>Business-as-usual operations</strong> covers running the company and all foundational activities — everything that is not a separately identified, contracted project, including project preparation. <strong>Projects</strong> are specific awarded works (one bridge = one project).</p><p><strong>Blended settlement:</strong> work is compensated partly as a fee (paid from the project's budget) and partly through an equity increase reflecting the value added to the company. The equity component follows a <strong>descending scale</strong>: first bridge &gt; first bridge in a new country &gt; further references.</p><ul><li><strong>Equity multiplier 1.00 — first bridge.</strong> The very first live reference. This represents the largest jump in company value, as it makes the product bankable and genuinely assessable for investors, and is therefore counted at the full equity multiplier.</li><li><strong>0.60 — first bridge in a new country.</strong> Opening a new market, localization and local regulatory acceptance represent significant value, while the product already has a proven reference by this point.</li><li><strong>0.40 — first project in a new client segment or bridge type.</strong> Here the main value is validating a new use case — for example a different bridge type, or a railway environment distinct from road applications.</li><li><strong>0.15 — a further bridge in a known market.</strong> These projects primarily strengthen scaling, cash flow and recurring revenue, but their marginal effect on company value is smaller.</li><li><strong>0.05 — purely operational or renewal engagements.</strong> Valuable mainly for cash flow and recurring revenue, but on their own they carry only minimal direct equity (company-value) impact.</li></ul><p class='td-note'>Note: subcategory weights are indicative and meant to be set by the team; high-volume items (e.g. individual grants or bridges) may warrant finer-grained accounting.</p>", "groups": [{"id": "biz", "name": "Business-as-usual operations", "categories": [{"id": "B1", "name": "Sales / business development / acquisition (B2G + B2B + international)", "subs": [{"id": "B1s1", "name": "New public-sector client acquisition (road/bridge authority, e.g. Magyar Közút, MÁV) — signed framework/contract", "weight": 10}, {"id": "B1s2", "name": "Winning the first client in a new international market (foreign bridge-management authority)", "weight": 10}, {"id": "B1s3", "name": "B2B partner agreement (engineering firm, contractor, sensor manufacturer) — sales channel", "weight": 6}, {"id": "B1s4", "name": "Converting a pilot/PoC into a paid engagement", "weight": 7}, {"id": "B1s5", "name": "Securing a framework agreement / DPS / public-procurement qualification", "weight": 6}, {"id": "B1s6", "name": "Key-account relationship management, upsell (multiple bridges at the same operator)", "weight": 5}, {"id": "B1s7", "name": "Tendering / bid writing for public procurement (technical + price)", "weight": 5}, {"id": "B1s8", "name": "Channeling the industry / professional network (referrals)", "weight": 4}]}, {"id": "B2", "name": "Grants / non-dilutive funding", "subs": [{"id": "B2s1", "name": "Writing and winning domestic R&D grants (NKFIH, KFI, GINOP-successor)", "weight": 8}, {"id": "B2s2", "name": "Writing and winning EU grants (Horizon Europe, EIC Accelerator)", "weight": 9}, {"id": "B2s3", "name": "Organizing consortium partners for a grant (BME, industry partner)", "weight": 5}, {"id": "B2s4", "name": "Managing grant accounting, reporting and audit compliance", "weight": 4}, {"id": "B2s5", "name": "Coordinating grant writers / consultants, building the grant pipeline", "weight": 3}]}, {"id": "B3", "name": "Investor preparation / fundraising", "subs": [{"id": "B3s1", "name": "Assembling the pitch deck and equity story", "weight": 6}, {"id": "B3s2", "name": "Building and updating the financial model / business plan", "weight": 6}, {"id": "B3s3", "name": "Compiling data-room / due-diligence materials (IP, legal, financial)", "weight": 6}, {"id": "B3s4", "name": "Preparing the cap table and valuation, negotiating the term sheet", "weight": 7}, {"id": "B3s5", "name": "Investor relationship building, roadshow, bringing an investor on board", "weight": 9}, {"id": "B3s6", "name": "Investor-side reporting, board materials", "weight": 4}]}, {"id": "B4", "name": "Core technology / IP development (product core, not project-specific)", "subs": [{"id": "B4s1", "name": "General B-WIM algorithm development, accuracy optimization (product level)", "weight": 9}, {"id": "B4s2", "name": "RTS-DT digital-twin platform / architecture development", "weight": 9}, {"id": "B4s3", "name": "General FEM / structural model library, validation framework", "weight": 7}, {"id": "B4s4", "name": "AI/ML model family, retraining pipeline (product level)", "weight": 8}, {"id": "B4s5", "name": "Sensor / measurement hardware development, specification (patentable element)", "weight": 7}, {"id": "B4s6", "name": "Software platform / web application / database infrastructure (core)", "weight": 7}, {"id": "B4s7", "name": "Scalable data pipeline and data-quality system", "weight": 6}, {"id": "B4s8", "name": "Product roadmap, architecture decisions, technical vision", "weight": 5}]}, {"id": "B5", "name": "Operations / management / compliance", "subs": [{"id": "B5s1", "name": "Company leadership, executive duties, team coordination", "weight": 6}, {"id": "B5s2", "name": "Finance / controlling / cash-flow management", "weight": 5}, {"id": "B5s3", "name": "SOPs, quality system, delivery processes", "weight": 3}, {"id": "B5s4", "name": "GDPR / data handling / information security (critical-infrastructure data)", "weight": 4}, {"id": "B5s5", "name": "Public-procurement and contractual compliance, legal coordination", "weight": 4}, {"id": "B5s6", "name": "HR / recruitment / hiring key staff (e.g. formalizing sales)", "weight": 4}, {"id": "B5s7", "name": "Supplier and asset management (sensors, hardware procurement)", "weight": 3}]}, {"id": "B6", "name": "Marketing / brand / scientific reach", "subs": [{"id": "B6s1", "name": "Scientific publication, conference presentation (credibility, lead generation)", "weight": 4}, {"id": "B6s2", "name": "Industry / regulatory relationship building, organizing professional events", "weight": 4}, {"id": "B6s3", "name": "Website, case studies, reference materials", "weight": 3}, {"id": "B6s4", "name": "PR, press, social media, brand building", "weight": 2}, {"id": "B6s5", "name": "Maintaining the BME / university relationship as a reputation and talent channel", "weight": 3}]}, {"id": "B7", "name": "BME-IP & legal foundations (investment readiness)", "subs": [{"id": "B7s1", "name": "Settling the BME-IP chain (assignment / exclusive license / spin-off) — signed agreement", "weight": 9}, {"id": "B7s2", "name": "Delineating background vs. foreground IP, copyright assignment from members", "weight": 6}, {"id": "B7s3", "name": "Trade-secret / know-how protection system (for the core algorithm)", "weight": 5}, {"id": "B7s4", "name": "Patenting the sensor/hardware element (where infringement is detectable)", "weight": 5}, {"id": "B7s5", "name": "Preparing the articles of association + syndicate agreement (milestones)", "weight": 6}]}]}, {"id": "proj", "name": "Projects", "categories": [{"id": "P1", "name": "Project preparation & site", "subs": [{"id": "P1s1", "name": "Site survey, bridge condition assessment, measurement plan", "weight": 6}, {"id": "P1s2", "name": "Bridge preparation: sensor placement plan, installation concept", "weight": 6}, {"id": "P1s3", "name": "Permitting, bridge-operator coordination, traffic management for installation", "weight": 4}]}, {"id": "P2", "name": "Installation & data collection", "subs": [{"id": "P2s1", "name": "Physical installation and commissioning of sensors on the bridge", "weight": 7}, {"id": "P2s2", "name": "Calibration measurement campaign (reference vehicle, load testing)", "weight": 6}, {"id": "P2s3", "name": "Setting up continuous data collection, remote data link", "weight": 4}]}, {"id": "P3", "name": "Data & modeling (project-specific)", "subs": [{"id": "P3s1", "name": "Building the bridge-specific database (historical + live data)", "weight": 6}, {"id": "P3s2", "name": "Building the bridge-specific FEM / structural model", "weight": 8}, {"id": "P3s3", "name": "Setting up the RTS-DT digital twin for the given bridge, integration", "weight": 8}, {"id": "P3s4", "name": "Training and calibrating the AI / B-WIM model on the bridge data", "weight": 8}, {"id": "P3s5", "name": "Model validation, accuracy verification in front of the client", "weight": 6}]}, {"id": "P4", "name": "Delivery & client", "subs": [{"id": "P4s1", "name": "Software integration, client-dashboard customization", "weight": 5}, {"id": "P4s2", "name": "Structural evaluation report / expert opinion for the client", "weight": 6}, {"id": "P4s3", "name": "Handover, client-side training", "weight": 4}, {"id": "P4s4", "name": "Project management, client relationship during the project", "weight": 5}]}, {"id": "P5", "name": "Operations (recurring)", "subs": [{"id": "P5s1", "name": "Continuous monitoring, alert handling, SLA fulfillment", "weight": 5}, {"id": "P5s2", "name": "Maintenance, sensor replacement, model recalibration", "weight": 4}, {"id": "P5s3", "name": "Periodic reporting, client review, contract-renewal preparation", "weight": 4}]}]}]};
+
+/* Live task-division state. Built from TASK_SEED on first load; the owner split
+   for every subcategory is keyed by member id, defaulting all owners to 0 with
+   one starred (balancing) owner per subcategory (JAL by default). The balancer
+   auto-fills the remainder to reach 100% — identical UX to the ownership tabs. */
+let taskDivision = null;          // {introText, groups:[{id,name,categories:[{id,name,subs:[{id,name,weight,split:{},star}]}]}]}
+const TD_MAX_SUBS = 10;           // each category supports up to 10 subcategories
+
+// Build a fresh taskDivision object from the seed, against a given roster
+// (defaults to the live members if not supplied).
+function buildTaskSeed(ownerIds){
+  ownerIds = ownerIds || members.map(m=>m.id);
+  const star = ownerIds[0] || null;          // default balancer = first owner (JAL)
+  const clone = JSON.parse(JSON.stringify(TASK_SEED));
+  clone.groups.forEach(g=> g.categories.forEach(c=> c.subs.forEach(s=>{
+    s.split = {}; ownerIds.forEach(id=> s.split[id]=0);   // all owners 0%
+    s.star = star;                                        // balancer absorbs remainder
+  })));
+  return clone;
+}
+
+/* Validate a loaded taskDivision against the owner roster; on any problem fall
+   back to (or repair toward) the seed. Ensures every sub has a split for every
+   current owner id and a valid star. Old v3 saves (no taskDivision) -> seed. */
+function validateTaskDivision(td, ownerIds){
+  if(!td || typeof td!=='object' || !Array.isArray(td.groups) || !td.groups.length){
+    return buildTaskSeed(ownerIds);
+  }
+  try{
+    const star0 = ownerIds[0] || null;
+    const out = { introText: typeof td.introText==='string' ? td.introText : (TASK_SEED.introText||''),
+                  groups: [] };
+    td.groups.forEach((g,gi)=>{
+      if(!g||typeof g!=='object') return;
+      const og = { id: String(g.id||('g'+gi)), name: String(g.name||'Group'), categories: [] };
+      (Array.isArray(g.categories)?g.categories:[]).forEach((c,ci)=>{
+        if(!c||typeof c!=='object') return;
+        const oc = { id:String(c.id||('c'+ci)), name:String(c.name||'Category'), subs:[] };
+        (Array.isArray(c.subs)?c.subs:[]).slice(0,TD_MAX_SUBS).forEach((s,si)=>{
+          if(!s||typeof s!=='object') return;
+          const split={}; ownerIds.forEach(id=>{
+            const v = s.split && s.split[id]; split[id] = (v==null||isNaN(+v))?0:+v;
+          });
+          const star = (s.star && ownerIds.includes(s.star)) ? s.star : star0;
+          oc.subs.push({ id:String(s.id||(`${oc.id}s${si}`)), name:String(s.name||''),
+                         weight: isNaN(+s.weight)?0:+s.weight, split, star });
+        });
+        og.categories.push(oc);
+      });
+      if(og.categories.length || true) out.groups.push(og);
+    });
+    return out.groups.length ? out : buildTaskSeed(ownerIds);
+  }catch(e){ return buildTaskSeed(ownerIds); }
+}
 
 /* STRUCTURAL (not per-milestone) */
 let starredType = 'Original';
@@ -740,7 +883,7 @@ function renderMembers(){
 }
 function onName(id,v){
   const m=members.find(x=>x.id===id); if(m) m.name=v;
-  renderCharts(); renderCapTable(); scheduleSave();   // names propagate to charts/table/exports
+  renderCharts(); renderCapTable(); renderTaskDivision(); scheduleSave();   // names propagate everywhere
 }
 function setStarMember(typeKey,id){
   memberStar[typeKey]=id;
@@ -901,7 +1044,258 @@ function onTitle(){
    refreshSoft() recompute computed cells (starred + inherited) without rebuilding
                  inputs, so typing keeps the caret. We update displayed values in
                  place, then refresh charts + table. */
-function refresh(){ renderMsDefs(); renderTypes(); renderMembers(); renderCharts(); renderCapTable(); scheduleSave(); }
+
+/* ============================================================================
+   TASK DIVISION — calculation chain + rendering
+   ----------------------------------------------------------------------------
+   Reproduces the spreadsheet formulas exactly:
+   (1) Category-level per person  = SUMPRODUCT(sub_weights, person_%_column)
+       i.e. Σ over subs of (sub.weight × person's fractional share in that sub).
+   (2) Per-person total           = Σ category-level values across all categories.
+   (3) Final headline %           = person_total ÷ grand_total_weight (×100),
+       where grand_total_weight = Σ of every subcategory weight. Reconciles to 100%.
+
+   The per-subcategory owner split reuses the established balancer pattern:
+   one starred owner per subcategory whose value = 100 − Σ(other owners), shown
+   read-only; overflow (balancer < 0) raises a per-subcategory warning, no clamping.
+   ========================================================================== */
+
+// Effective split for a subcategory: non-star owners use their stored value,
+// the starred owner is computed as 100 − Σ(others). Returns {split, invalid}.
+function tdResolveSplit(sub){
+  const ownerIds = members.map(m=>m.id);
+  const star = (sub.star && ownerIds.includes(sub.star)) ? sub.star : (ownerIds[0]||null);
+  const out = {}; let othersum = 0;
+  ownerIds.forEach(id=>{
+    if(id===star) return;
+    const v = +sub.split[id] || 0;
+    out[id] = v; othersum += v;
+  });
+  if(star) out[star] = 100 - othersum;     // balancer absorbs remainder (may go < 0)
+  return {split: out, star, invalid: star ? (out[star] < -1e-9) : false};
+}
+
+/* The three-stage chain. Returns:
+   { perCat:{catId:{ownerId:weightedVal}}, perPerson:{ownerId:total},
+     grand:totalWeight, pct:{ownerId:percent}, catWeight:{catId:w}, groupWeight:{gid:w} } */
+function tdCompute(){
+  const ownerIds = members.map(m=>m.id);
+  const perPerson = {}; ownerIds.forEach(id=>perPerson[id]=0);
+  const perCat = {}, catWeight = {}, groupWeight = {};
+  let grand = 0;
+  taskDivision.groups.forEach(g=>{
+    groupWeight[g.id] = 0;
+    g.categories.forEach(c=>{
+      let cw = 0; const catPer = {}; ownerIds.forEach(id=>catPer[id]=0);
+      c.subs.forEach(s=>{
+        const w = +s.weight || 0; cw += w;
+        const {split} = tdResolveSplit(s);
+        // SUMPRODUCT: weight × (owner% / 100) — % stored as 0..100, so /100 to fraction
+        ownerIds.forEach(id=> catPer[id] += w * ((split[id]||0)/100));
+      });
+      perCat[c.id] = catPer; catWeight[c.id] = cw;
+      groupWeight[g.id] += cw; grand += cw;
+      ownerIds.forEach(id=> perPerson[id] += catPer[id]);
+    });
+  });
+  const pct = {};
+  ownerIds.forEach(id=> pct[id] = grand>0 ? (perPerson[id]/grand*100) : 0);
+  return {perCat, perPerson, grand, pct, catWeight, groupWeight};
+}
+
+/* ---- INTRO (editable rich text via contenteditable) ---- */
+let _introEditing = false;
+function renderIntro(){
+  const el = document.getElementById('taskIntro');
+  if(!el) return;
+  if(!_introEditing) el.innerHTML = taskDivision.introText || '';
+}
+function toggleIntroEdit(){
+  const el = document.getElementById('taskIntro');
+  const btn = document.getElementById('introEditBtn');
+  _introEditing = !_introEditing;
+  el.setAttribute('contenteditable', _introEditing ? 'true' : 'false');
+  btn.textContent = _introEditing ? 'Done' : 'Edit';
+  if(_introEditing){ el.focus(); }
+  else { taskDivision.introText = el.innerHTML; scheduleSave(); }   // commit on Done
+}
+
+/* ---- star (balancer) icon ---- */
+function tdStarSVG(active){
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="${active?'currentColor':'none'}" stroke="currentColor" stroke-width="1.6">
+    <path d="M12 2l2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.8 6.1 20.8l1.3-6.6L2.5 9.6l6.6-.8z"/></svg>`;
+}
+
+/* ---- headline result table (per-person % of total weight) ---- */
+function renderTaskResult(){
+  const host = document.getElementById('taskResult'); if(!host) return;
+  const {perPerson, grand, pct} = tdCompute();
+  const ownerIds = members.map(m=>m.id);
+  const totalPct = ownerIds.reduce((a,id)=>a+pct[id],0);
+  const bad = Math.abs(totalPct-100) > 0.005 && grand>0;
+  let rows = ownerIds.map(id=>{
+    const m = members.find(x=>x.id===id);
+    return `<tr>
+      <td class="l">${esc(m.name)}</td>
+      <td class="wt">${fmt(perPerson[id])}</td>
+      <td class="pct">${fmt(pct[id])}%</td>
+    </tr>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="tr-head"><span>Contribution result — share of total effort</span>
+      <span class="tr-total">Total weight: ${fmt(grand)}</span></div>
+    <div class="tr-scroll"><table>
+      <thead><tr><th class="l">Owner</th><th>Weighted total</th><th>Share %</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td class="l">Total</td><td class="wt">${fmt(grand)}</td>
+        <td class="pct ${bad?'bad':''}">${fmt(totalPct)}%</td></tr></tfoot>
+    </table></div>`;
+}
+
+/* ---- group → category → subcategory editor ---- */
+function renderTaskGroups(){
+  const host = document.getElementById('taskGroups'); if(!host) return;
+  const ownerIds = members.map(m=>m.id);
+  const comp = tdCompute();
+  let html = '';
+  taskDivision.groups.forEach((g, gi)=>{
+    html += `<div class="td-group">
+      <div class="td-group-head">
+        <span class="gtag">${g.id==='proj'?'Projects':'Operations'}</span>
+        <input type="text" value="${esc(g.name)}" data-tg="${gi}" aria-label="Group name"
+               oninput="onTaskGroupName(${gi}, this.value)">
+        <span class="gwt">weight ${fmt(comp.groupWeight[g.id]||0)}</span>
+      </div>`;
+    g.categories.forEach((c, ci)=>{
+      const ownerHeads = ownerIds.map(id=>`<th>${esc(members.find(m=>m.id===id).name)}</th>`).join('');
+      let subRows = '';
+      c.subs.forEach((s, si)=>{
+        const {split, star, invalid} = tdResolveSplit(s);
+        const ownerCells = ownerIds.map(id=>{
+          const isStar = id===star;
+          return `<td class="owncell">
+            <input type="number" step="0.01" class="own-pct ${isStar?'':''} ${isStar&&invalid?'neg':''}"
+              value="${fmt(split[id]||0)}" ${isStar?'readonly tabindex="-1"':''}
+              data-split="${gi}.${ci}.${si}.${id}" oninput="onTaskSplit(${gi},${ci},${si},'${id}',this.value)">
+            <span class="sfx">%</span>
+            <button class="star-btn ${isStar?'active':''}" title="${isStar?'Balancing owner':'Make balancing owner'}"
+              onclick="setTaskStar(${gi},${ci},${si},'${id}')" aria-label="Set balancing owner">${tdStarSVG(isStar)}</button>
+          </td>`;
+        }).join('');
+        subRows += `<tr data-subrow="${gi}.${ci}.${si}">
+          <td class="l"><input type="text" class="sub-name" value="${esc(s.name)}"
+              oninput="onTaskSubName(${gi},${ci},${si},this.value)" aria-label="Subcategory name"></td>
+          <td><input type="number" step="0.01" min="0" class="sub-wt" value="${fmt(s.weight)}"
+              oninput="onTaskSubWeight(${gi},${ci},${si},this.value)" aria-label="Weight"></td>
+          ${ownerCells}
+          <td><button class="td-row-del" title="Remove subcategory"
+              onclick="removeTaskSub(${gi},${ci},${si})" aria-label="Remove subcategory">×</button></td>
+        </tr>
+        <tr class="sub-warn-row"><td colspan="${3+ownerIds.length}">
+          <div class="sub-warn ${invalid?'show':''}">Owner percentages exceed 100% — the balancing owner can't go negative. Reduce other entries.</div>
+        </td></tr>`;
+      });
+      const atMax = c.subs.length >= TD_MAX_SUBS;
+      html += `<div class="td-cat">
+        <div class="td-cat-head">
+          <span class="ctag">${esc(c.id)}</span>
+          <input type="text" class="cat-name" value="${esc(c.name)}" data-tc="${gi}.${ci}"
+                 oninput="onTaskCatName(${gi},${ci},this.value)" aria-label="Category name">
+          <span class="cat-wt">Σ weight ${fmt(comp.catWeight[c.id]||0)}</span>
+        </div>
+        <div class="td-cat-body">
+          <table class="td-subtable">
+            <thead><tr><th class="l">Subcategory</th><th>Weight</th>${ownerHeads}<th></th></tr></thead>
+            <tbody>${subRows}</tbody>
+          </table>
+          <button class="td-add-sub" ${atMax?'disabled':''} onclick="addTaskSub(${gi},${ci})">
+            + Add subcategory${atMax?` (max ${TD_MAX_SUBS})`:` (${c.subs.length}/${TD_MAX_SUBS})`}</button>
+        </div>
+      </div>`;
+    });
+    html += `<button class="td-add-cat" onclick="addTaskCat(${gi})">+ Add category</button>`;
+    html += `</div>`;
+  });
+  host.innerHTML = html;
+}
+
+/* full re-render of the task tab */
+function renderTaskDivision(){
+  if(!taskDivision) return;
+  renderIntro();
+  renderTaskResult();
+  renderTaskGroups();
+}
+/* soft update: recompute result + warnings + balancer fields WITHOUT rebuilding
+   inputs, so typing keeps the caret. */
+function renderTaskSoft(){
+  if(!taskDivision) return;
+  // update balancer (read-only) fields + neg classes in place
+  document.querySelectorAll('#taskGroups input.own-pct').forEach(inp=>{
+    if(inp===document.activeElement) return;
+    const [gi,ci,si,id] = inp.dataset.split.split('.');
+    const sub = taskDivision.groups[+gi].categories[+ci].subs[+si];
+    const {split, star, invalid} = tdResolveSplit(sub);
+    if(id===star){ inp.value = fmt(split[id]||0); inp.classList.toggle('neg', invalid); }
+  });
+  // per-subcategory warnings
+  document.querySelectorAll('#taskGroups tr[data-subrow]').forEach(tr=>{
+    const [gi,ci,si] = tr.dataset.subrow.split('.');
+    const sub = taskDivision.groups[+gi].categories[+ci].subs[+si];
+    const {invalid} = tdResolveSplit(sub);
+    const warn = tr.nextElementSibling && tr.nextElementSibling.querySelector('.sub-warn');
+    if(warn) warn.classList.toggle('show', invalid);
+  });
+  // category Σ weight + group weight + headline result
+  const comp = tdCompute();
+  document.querySelectorAll('#taskGroups .td-cat').forEach((catEl, idx)=>{});  // (weights via full result below)
+  renderTaskResult();
+  // refresh category/group weight chips cheaply by recomputing from DOM-independent comp
+  let flatCats=[]; taskDivision.groups.forEach(g=>g.categories.forEach(c=>flatCats.push(c.id)));
+  document.querySelectorAll('#taskGroups .cat-wt').forEach((el,i)=>{ if(flatCats[i]!=null) el.textContent='Σ weight '+fmt(comp.catWeight[flatCats[i]]||0); });
+  document.querySelectorAll('#taskGroups .gwt').forEach((el,i)=>{ const g=taskDivision.groups[i]; if(g) el.textContent='weight '+fmt(comp.groupWeight[g.id]||0); });
+  scheduleSave();
+}
+
+/* ---- edit handlers ---- */
+function onTaskGroupName(gi,v){ taskDivision.groups[gi].name=v; scheduleSave(); }
+function onTaskCatName(gi,ci,v){ taskDivision.groups[gi].categories[ci].name=v; scheduleSave(); }
+function onTaskSubName(gi,ci,si,v){ taskDivision.groups[gi].categories[ci].subs[si].name=v; scheduleSave(); }
+function onTaskSubWeight(gi,ci,si,v){
+  let n=parseFloat(v); taskDivision.groups[gi].categories[ci].subs[si].weight=isNaN(n)?0:n;
+  renderTaskSoft();   // weights change the result live
+}
+function onTaskSplit(gi,ci,si,id,v){
+  let n=parseFloat(v); taskDivision.groups[gi].categories[ci].subs[si].split[id]=isNaN(n)?0:n;
+  renderTaskSoft();
+}
+function setTaskStar(gi,ci,si,id){
+  taskDivision.groups[gi].categories[ci].subs[si].star=id;
+  renderTaskDivision();   // structural: rebuild so read-only field moves
+  scheduleSave();
+}
+let _tdSubCounter = 0;
+function addTaskSub(gi,ci){
+  const c = taskDivision.groups[gi].categories[ci];
+  if(c.subs.length >= TD_MAX_SUBS) return;
+  const ownerIds = members.map(m=>m.id); const split={}; ownerIds.forEach(id=>split[id]=0);
+  c.subs.push({ id:`${c.id}_x${Date.now()}_${_tdSubCounter++}`, name:'New subcategory', weight:0,
+               split, star: ownerIds[0]||null });
+  renderTaskDivision(); scheduleSave();
+}
+function removeTaskSub(gi,ci,si){
+  taskDivision.groups[gi].categories[ci].subs.splice(si,1);
+  renderTaskDivision(); scheduleSave();
+}
+function addTaskCat(gi){
+  const g = taskDivision.groups[gi];
+  const prefix = g.id==='proj' ? 'P' : 'B';
+  g.categories.push({ id:`${prefix}_x${Date.now()}`, name:'New category', subs:[] });
+  renderTaskDivision(); scheduleSave();
+}
+
+
+function refresh(){ renderMsDefs(); renderTypes(); renderMembers(); renderCharts(); renderCapTable(); renderTaskDivision(); scheduleSave(); }
 function refreshSoft(){
   // update every non-focused cell's displayed value + inherited/neg classes in place
   document.querySelectorAll('input[data-cell]').forEach(inp=>{
@@ -943,6 +1337,25 @@ function exportCSV(){
     MS.forEach(m=>{ const val=per[m].shares[mem.id]||0; row.push(fmt(val), fmt(per[m].cv*val/100)); });
     rows.push(row);
   }));
+
+  // ---- Task Division section (weighted contribution model) ----
+  if(taskDivision){
+    const comp=tdCompute(); const ownerIds=members.map(m=>m.id);
+    rows.push([]); rows.push(['# TASK DIVISION — weighted contribution']);
+    // headline result
+    rows.push(['Owner','Weighted total','Share %']);
+    ownerIds.forEach(id=> rows.push([members.find(m=>m.id===id).name, fmt(comp.perPerson[id]), fmt(comp.pct[id])]));
+    rows.push(['Total weight', fmt(comp.grand), fmt(ownerIds.reduce((a,id)=>a+comp.pct[id],0))]);
+    rows.push([]);
+    // detailed subcategory table
+    rows.push(['Group','Category','Subcategory','Weight','Balancing owner', ...ownerIds.map(id=>members.find(m=>m.id===id).name+' %')]);
+    taskDivision.groups.forEach(g=> g.categories.forEach(c=> c.subs.forEach(s=>{
+      const {split,star}=tdResolveSplit(s);
+      rows.push([g.name, c.name, s.name, fmt(s.weight), members.find(m=>m.id===star)?.name||'',
+                 ...ownerIds.map(id=>fmt(split[id]||0))]);
+    })));
+  }
+
   const csv=rows.map(r=>r.map(c=>{c=String(c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\r\n');
   dl(new Blob([csv],{type:'text/csv;charset=utf-8;'}),'BridgeAID_ownership_milestones.csv');
 }
@@ -1016,8 +1429,8 @@ async function exportPDF(){
    (undefined === inherit), so serialize/deserialize round-trips losslessly.
    ========================================================================== */
 const SCHEMA_NAME = 'bridgeaid-dashboard';
-const SCHEMA_VERSION = 3;
-const LS_KEY = 'bridgeaid:dashboard:v3';
+const SCHEMA_VERSION = 4;                 // v4: added taskDivision (Task Division tab)
+const LS_KEY = 'bridgeaid:dashboard:v3';  // keep key so existing v3 autosaves still load (migrated on read)
 
 /* undefined -> null for JSON (companyVal); sparse maps drop undefined keys. */
 function serializeState(){
@@ -1034,7 +1447,9 @@ function serializeState(){
       typePct: typePct.map(o=>{ const out={}; for(const k in o) if(o[k]!==undefined&&o[k]!==null) out[k]=o[k]; return out; }),
       memberOverride: memberOverride.map(o=>{ const out={}; for(const k in o) if(o[k]!==undefined&&o[k]!==null) out[k]=o[k]; return out; }),
       starredType,
-      memberStar: {...memberStar}
+      memberStar: {...memberStar},
+      // Task Division tab (deep-cloned so the saved snapshot is independent)
+      taskDivision: taskDivision ? JSON.parse(JSON.stringify(taskDivision)) : null
     }
   };
 }
@@ -1084,6 +1499,10 @@ function applyState(payload, {persist=true}={}){
       newMemberStar[t.key] = (grp.find(m=>m.id===want)?.id) || (grp[0]?.id) || null;
     });
 
+    // ---- Task Division (defensive; old v3 files have none -> seed it) ----
+    const newOwnerIds = safeMembers.map(m=>m.id);
+    const newTaskDivision = validateTaskDivision(s.taskDivision, newOwnerIds);
+
     // ---- commit (all-or-nothing) ----
     members = safeMembers;
     msDesc = newMsDesc;
@@ -1092,6 +1511,7 @@ function applyState(payload, {persist=true}={}){
     memberOverride = newMemberOverride;
     starredType = newStarredType;
     memberStar = newMemberStar;
+    taskDivision = newTaskDivision;
     document.getElementById('diagTitle').value = (s.title!=null? String(s.title) : 'BridgeAID — Cap Table Evolution');
 
     onTitle();
@@ -1177,7 +1597,8 @@ function emptyState(){
     typePct:[{Original:100,BME:0,VC:0,ESOP:0},{},{},{},{}],
     memberOverride:[{},{},{},{},{}],
     starredType:'Original',
-    memberStar:{Original:'JAL',BME:'BME',VC:'VC1',ESOP:'ESOP1'}
+    memberStar:{Original:'JAL',BME:'BME',VC:'VC1',ESOP:'ESOP1'},
+    taskDivision: buildTaskSeed()
   }};
 }
 
@@ -1222,8 +1643,23 @@ function exampleState(){
       {VC1:8,  VC2:14, VC3:10, VC4:11},                // M5: explicit full VC split
     ],
     starredType:'VC',
-    memberStar:{Original:'JAL', BME:'BME', VC:'VC4', ESOP:'ESOP1'}
+    memberStar:{Original:'JAL', BME:'BME', VC:'VC4', ESOP:'ESOP1'},
+    taskDivision: buildExampleTaskDivision()
   }};
+}
+/* Example task division: seed structure with a few representative owner splits
+   filled in (across the six founders) so the contribution result is non-trivial. */
+function buildExampleTaskDivision(){
+  const td = buildTaskSeed();
+  // a plausible founder split applied to a handful of subcategories per category
+  const demo = {JAL:30, KA:20, KD:20, KB:10, SZB:10, VI:10};   // sums to 100; VI is balancer by default? star=JAL
+  td.groups.forEach(g=> g.categories.forEach(c=> c.subs.forEach((s,i)=>{
+    if(i%2===0){ // populate every other sub to show partial completion
+      Object.keys(s.split).forEach(id=> s.split[id] = demo[id]!=null ? demo[id] : 0);
+      s.star = 'VI';                       // VI balances the remainder
+    }
+  })));
+  return td;
 }
 function loadExample(){
   if(hasSavedState() && !confirm('Load example data? This replaces the current dashboard (your auto-saved state will be overwritten — export a .json first to keep it).')) return;
