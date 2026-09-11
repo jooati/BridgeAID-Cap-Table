@@ -158,7 +158,7 @@
   .cumbox{border-top:1px solid var(--line);padding-top:6px;}
   .cumbox .kv{align-items:baseline;} .cumbox .v.small{font-weight:600;color:var(--slate);}
   .cumbox .big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--navy);}
-  .appr{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding-top:6px;border-top:1px dashed var(--line);} .appr input{width:15px;height:15px;accent-color:var(--ok);} .appr.done{color:var(--ok);}
+  .appr{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding-top:6px;border-top:1px dashed var(--line);margin-top:2px;} .appr input{width:15px;height:15px;accent-color:var(--ok);} .appr.done{color:var(--ok);}
   .ro table.mini input,.ro .pay select,.ro .pay input{background:#FAFBFC;pointer-events:none;} .ro .addent,.ro .xbtn{display:none;}
   .ocard .audit{font-size:10px;color:var(--slate-light);}
   /* stacked bars */
@@ -363,7 +363,7 @@ function renderTracker(){
           <td class="x"><button class="xbtn" onclick="delEntry('${r.id}','${o.id}',${i})" title="Remove">×</button></td></tr>`; }).join('');
       const roleOpts='<option value="">— role —</option>'+S.roles.map(x=>`<option value="${x.id}" ${c.role===x.id?'selected':''}>${esc(x.name)}</option>`).join('');
       html+=`<td class="${col?'col-collapsed':''}"><div class="ocard ${fin?'final ro':''} ${r.audit.needsReapproval&&!appr?'needs':''}">
-        <div class="cum-mini">${fmt1(comp[r.id].cum[o.id])} h</div>
+        <div class="cum-mini" title="Equity hours in this period">${fmt1(k.equity)} h</div>
         <div><div class="sec">Tasks &amp; ${unit==='h'?'hours':'points'}</div><table class="mini"><tbody>${entries||`<tr><td style="color:var(--slate-light)">No entries</td></tr>`}</tbody></table>
           <div class="addent"><input type="text" placeholder="+ type a task from the Task division menu" oninput="acInput(this,'${r.id}','${o.id}')" onkeydown="acKey(event,this,'${r.id}','${o.id}')" onblur="setTimeout(()=>acHide(this),150)"><div class="ac" hidden></div></div></div>
         <div class="kv rule sum" title="Σ hours × avg. weight = Σ weighted"><span class="k">Σ ${unit==='h'?'hours':'points'} <b>${fmt1(k.H)}</b> × avg. weight <b>${fmt1(k.avgW)}</b> =</span><span class="v">Σ weighted <b>${fmt1(k.W)}</b></span></div>
@@ -371,8 +371,6 @@ function renderTracker(){
           <div class="kv paid ${k.over?'over':''}" title="${money(c.salary||0)} ÷ ${money(k.market)} market × 160 h = paid hours; × average task weight = weighted deduction"><span class="k">Paid hours</span><span class="v">${fmt1(k.paidHours)} h${k.over?' (exceeds logged)':''} × avg. weight ${fmt1(k.avgW)} = ${fmt1(k.paidW)}</span></div></div>`:''}
         <div class="kv eq" title="Paid hours are removed at your average task weight (${fmt1(k.avgW)} = Σ weighted ÷ Σ hours)"><span class="k">${fmt1(k.W)} − ${fmt1(k.paidW)} =</span><span class="v">Equity hours <b>${fmt1(k.equity)}</b></span></div>
         <div class="kv rule"><span class="k">Equity in this ${isM?'month':'period'}</span><span class="v">${fmt(k.monthly)}%</span></div>
-        <div class="cumbox"><div class="kv"><span class="k">Cumulative equity hours</span><span class="v small">${fmt1(comp[r.id].cum[o.id])} h</span></div>
-          <div class="kv"><span class="k">Cumulative share</span><span class="big">${fmt(comp[r.id].cumShare[o.id])}%</span></div></div>
         <label class="appr ${appr?'done':''}"><input type="checkbox" ${appr?'checked':''} ${mine?'':'disabled'} onchange="setApproval('${r.id}','${o.id}',this.checked)">${appr?'Approved':(mine?'Approve my card':'Not yet approved')}</label>
         ${c.editedBy?`<div class="audit">edited by ${esc(ownerName(c.editedBy))} · ${fmtWhen(c.editedAt)}</div>`:''}
       </div></td>`; });
