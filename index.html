@@ -319,7 +319,7 @@
     <div class="card-body">
       <h3 class="sub" style="margin-top:0">Role market salaries (monthly gross, 160 h) — versioned by month</h3>
       <p class="note" style="margin:0 0 8px">Each table is effective from its month until the next table starts. A month's cards always use the table in force for that month, so inflation adjustments or a new EUR rate apply from the chosen month onward without touching earlier periods.</p>
-      <div class="tracker-tools"><button class="btn-gold btn-small" onclick="addSalaryTable()">+ New salary table</button><button class="btn-quiet btn-small" onclick="addRole()">+ Add role</button><span class="lg">◀ collapses an older table · ▶ expands it · newest table is always open</span></div>
+      <div class="tracker-tools"><button class="btn-gold btn-small" onclick="addSalaryTable()">+ New salary table</button><button class="btn-quiet btn-small" onclick="collapseOlderTables()">Collapse all but current</button><button class="btn-quiet btn-small" onclick="expandAllTables()">Expand all</button><button class="btn-quiet btn-small" onclick="addRole()">+ Add role</button></div>
       <div class="tscroll"><table class="tracker" id="salaryTables"></table></div>
       <p class="note">A card's paid hours = salary (EUR) ÷ role market salary (EUR, from the table in force) × 160. Those hours earn no equity.</p>
       <div class="cfg-note" id="cfgNote"></div>
@@ -540,6 +540,8 @@ function renderSalaryMatrix(){
   host.innerHTML=html+'</tbody>';
 }
 function toggleTableCol(from){ collapsedTables.has(from)?collapsedTables.delete(from):collapsedTables.add(from); renderSalaryMatrix(); }
+function collapseOlderTables(){ const ts=tablesSorted(); ts.forEach((tb,i)=>{ if(i<ts.length-1) collapsedTables.add(tb.from); }); renderSalaryMatrix(); }
+function expandAllTables(){ collapsedTables.clear(); renderSalaryMatrix(); }
 function setTableFrom(i,v){ if(S.salaryTables.some((x,j)=>j!==i&&x.from===v)){ toast('There is already a table starting that month.','err'); renderOwners(); return; } S.salaryTables[i].from=v; commit(); }
 function setTableFx(i,v){ const n=parseFloat(v); if(!isNaN(n)&&n>0){ S.salaryTables[i].fx=n; commit(); } }
 function setTableHuf(i,rid,v){ S.salaryTables[i].huf[rid]=Math.max(0,parseFloat(v)||0); commit(); }
