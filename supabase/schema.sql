@@ -107,11 +107,12 @@ $$ select (select count(*) from approvals where period_id = p) = (select count(*
 -- Any change to a period's data wipes every approval on that period (nobody's tick
 -- survives a change they didn't see) and flags it for re-approval.
 create function reset_period_approvals() returns trigger language plpgsql security definer as $$
-declare pid text;
+declare pid text; had boolean;
 begin
   pid := coalesce(new.period_id, old.period_id);
+  had := exists (select 1 from approvals where period_id = pid);
   delete from approvals where period_id = pid;
-  update periods set needs_reapproval = true, edited_by = my_owner_id(), edited_at = now() where id = pid;
+  update periods set needs_reapproval = (needs_reapproval or had), edited_by = my_owner_id(), edited_at = now() where id = pid;
   return coalesce(new, old);
 end $$;
 create trigger entries_reset  after insert or update or delete on entries  for each row execute function reset_period_approvals();
@@ -156,6 +157,13 @@ create policy salaries_own on salaries for all to authenticated
 -- approvals: only your own tick; admins may clear any (reopen)
 create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id());
 create policy approvals_own_del on approvals for delete to authenticated using (owner_id = my_owner_id() or is_admin());
+
+-- ---------- RPC: auth users for the admin "Owners ↔ users" panel (admin-only, security definer) ----------
+create or replace function list_auth_users() returns table(id uuid, email text)
+language sql stable security definer set search_path = public as
+$$ select u.id, u.email::text from auth.users u where is_admin() order by u.email $$;
+revoke all on function list_auth_users() from public;
+grant execute on function list_auth_users() to authenticated;
 
 -- ---------- realtime ----------
 alter publication supabase_realtime add table periods, entries, salaries, approvals, owners, salary_tables, salary_rates, tasks;
@@ -262,3 +270,24 @@ insert into tasks(id,category_id,name,weight) values ('P5s3','P5','Periodic repo
 -- ---------- after creating the 7 users in Auth → Users, link them: ----------
 -- update owners set auth_uid = (select id from auth.users where email='...') where id='jal';
 -- (repeat per owner; the kickoff prompt makes Claude Code add an admin UI for this too)
+
+-- ============================================================================
+-- MIGRATION for a project where the schema above was already applied (safe to
+-- re-run, keeps all data). Paste just this block into the SQL Editor:
+--   1. the approval-reset trigger only flags "re-approval needed" when approvals existed
+--   2. list_auth_users() — used by the admin "Owners ↔ users" panel
+-- ============================================================================
+create or replace function reset_period_approvals() returns trigger language plpgsql security definer as $$
+declare pid text; had boolean;
+begin
+  pid := coalesce(new.period_id, old.period_id);
+  had := exists (select 1 from approvals where period_id = pid);
+  delete from approvals where period_id = pid;
+  update periods set needs_reapproval = (needs_reapproval or had), edited_by = my_owner_id(), edited_at = now() where id = pid;
+  return coalesce(new, old);
+end $$;
+create or replace function list_auth_users() returns table(id uuid, email text)
+language sql stable security definer set search_path = public as
+$$ select u.id, u.email::text from auth.users u where is_admin() order by u.email $$;
+revoke all on function list_auth_users() from public;
+grant execute on function list_auth_users() to authenticated;
