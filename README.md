@@ -51,9 +51,8 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>
 
 * `npm run seed -- --yes` — replaces every logged entry/salary/approval with the demo data (older periods finalised, the last
   two months pending). Without `--yes` it only prints what it would do.
-* `npm run import -- --from state.json` — one-off import of a legacy **Save JSON** file: master data merged, every period in the
-  file overwritten, approvals restored. (The admin *Load JSON* menu item does the same through the app, but cannot restore other
-  people's approvals.)
+* `npm run import -- --from state.json` — one-off import of a legacy **Save JSON** file (from the single-file app): master data
+  merged, every period in the file overwritten, approvals restored.
 
 ## Development
 

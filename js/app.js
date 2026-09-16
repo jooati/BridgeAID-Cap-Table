@@ -1,5 +1,5 @@
 /* ============================================================================
-   app.js — boot, tabs (#hash deep links), header menu, toast, render orchestration.
+   app.js — boot, tabs (#hash deep links), header menu (CSV / PDF export), toast, render orchestration.
    ============================================================================ */
 import * as C from './calc.js';
 import * as D from './data.js';
@@ -7,8 +7,7 @@ import * as A from './auth.js';
 import { renderTracker, initTracker } from './ui-tracker.js';
 import { renderTasks, initTasks } from './ui-tasks.js';
 import { renderOwners, initOwners, invalidateAuthUsers } from './ui-owners.js';
-import { renderReport, initReport, exportCSV, exportPDF, dl } from './ui-report.js';
-import { importState } from './import-state.js';
+import { renderReport, initReport, exportCSV, exportPDF } from './ui-report.js';
 
 export const TABS = [
   {slug: 'owners', label: 'Owners, roles & setup', panel: 'tab-owners', num: 1},
@@ -53,32 +52,16 @@ function openMenu() { menuOpen = true; $('navMenu').removeAttribute('hidden'); c
 export function closeMenu(rf) { menuOpen = false; const m = $('navMenu'); if (m) m.setAttribute('hidden', ''); const b = $('menuBtn'); if (b) { b.setAttribute('aria-expanded', 'false'); b.classList.remove('open'); if (rf) b.focus(); } }
 function setPill(kind, txt) { const p = $('syncPill'); if (!p) return; p.className = 'pill ' + kind; p.innerHTML = '<span class="dot"></span>' + C.esc(txt); }
 
-export function saveStateFile() {
-  if (!D.S) { toast('Sign in first.', 'err'); return; }
-  dl(new Blob([JSON.stringify(C.toLegacyJson(D.S), null, 2)], {type: 'application/json'}), `BridgeAID_tracker_${new Date().toISOString().slice(0, 10)}.json`); toast('Saved state to file.', 'ok');
-}
-export async function loadStateFile(file) {
-  if (!A.canMaster()) { toast('Only admins can load a JSON file.', 'err'); return; }
-  let payload; try { payload = JSON.parse(await file.text()); } catch (e) { toast('Not valid JSON — nothing changed.', 'err'); return; }
-  if (!C.validateLegacy(payload)) { toast('Not a BridgeAID tracker file — nothing changed.', 'err'); return; }
-  if (!window.confirm('Replace the shared data with this file? Master data is merged, every period in the file is overwritten. Approvals are cleared (only the import script can restore them).')) return;
-  try { const sb = await D.getClient(); const res = await importState(sb, payload, {restoreApprovals: false}); await D.reloadAll(); renderAll(); toast(`Imported ${res.entries} entries in ${res.periods} periods. Approvals must be given again.`, 'ok'); }
-  catch (e) { console.error(e); toast('Import failed: ' + (e.message || e), 'err'); await D.reloadAll(); renderAll(); }
-}
-
 function wireHeader() {
   $('topNav').addEventListener('click', e => { const a = e.target.closest('a[data-slug]'); if (!a) return; e.preventDefault(); goTab(a.dataset.slug, true); });
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('navMenu').addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b) return; closeMenu();
     switch (b.dataset.act) {
-      case 'saveJson': saveStateFile(); break;
-      case 'loadJson': $('loadFile').click(); break;
       case 'exportCsv': if (D.S) exportCSV(); else toast('Sign in first.', 'err'); break;
       case 'exportPdf': if (D.S) exportPDF(); else toast('Sign in first.', 'err'); break;
     }
   });
-  $('loadFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) loadStateFile(f); });
   document.addEventListener('click', e => { if (menuOpen && !e.target.closest('.menu-wrap')) closeMenu(); });
   document.addEventListener('keydown', e => { if (menuOpen && e.key === 'Escape') closeMenu(true); });
   window.addEventListener('popstate', () => goTab(tabFromHash(), false));

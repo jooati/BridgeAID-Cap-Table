@@ -50,10 +50,10 @@ Salary table in force = latest table with effective_from ≤ period month (fallb
 ## Permissions
 - owner: read all; write own entries/salaries while period not final; own approval only.
 - admin (is_admin): master data, periods (add/remove/reopen), link owners ↔ auth users.
-- No Reset / Load example in the UI.
+- No Reset / Load example / Save JSON / Load JSON in the UI (the legacy JSON import lives in `scripts/import-state.mjs`).
 
 ## UI conventions
-Brand: navy #222A35, gold #FFC000. Cards: tasks mini-table (name ×w · hours · × w = total) → Σ line → salary block → `W − paid_w = Equity hours` → share. Columns collapsible except the newest. Header single row: logo · tabs · Sign in · menu (Save JSON, Load JSON, Export CSV, Export PDF).
+Brand: navy #222A35, gold #FFC000. Cards: tasks mini-table (name ×w · hours · × w = total) → Σ line → salary block → `W − paid_w = Equity hours` → share. Columns collapsible except the newest. Header single row: logo · tabs · live/offline pill · Sign in (owner name + admin badge) · menu (Export CSV, Export PDF).
 
 ## Testing
 `npm test` runs tests/*.test.mjs with jsdom. Supabase is mocked in tests (tests/mock-supabase.mjs). Add a test for every behaviour change.

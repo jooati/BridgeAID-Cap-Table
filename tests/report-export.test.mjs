@@ -65,10 +65,13 @@ test('report views: by task, by person (HB last), payments; period and owner fil
   own.value = 'all'; per.value = 'all'; t.fire(per, 'change');
 });
 
-test('Save JSON produces a file the importer accepts', () => {
+test('the header menu offers only the CSV and PDF exports; Save/Load JSON are gone', () => {
+  assert.deepEqual(t.$$('#navMenu .nav-item').map(b => t.text(b)), ['Export CSV (all data)', 'Export PDF (monthly pages)']);
+  assert.equal(t.$('#navMenu [data-act="saveJson"]'), null); assert.equal(t.$('#navMenu [data-act="loadJson"]'), null); assert.equal(t.$('#loadFile'), null);
+  assert.equal(t.app.saveStateFile, undefined); assert.equal(t.app.loadStateFile, undefined);
+  /* the legacy Save-JSON shape is still produced for the import script's tests */
   const json = t.C.toLegacyJson(t.D.S);
-  assert.ok(t.C.validateLegacy(JSON.parse(JSON.stringify(json))));
-  assert.equal(json.rows.length, 12); assert.equal(json.catalog.groups[0].categories[0].subs.length, 8);
+  assert.ok(t.C.validateLegacy(JSON.parse(JSON.stringify(json)))); assert.equal(json.rows.length, 12);
 });
 
 test('CSV and PDF say who approved: "Approved" for self, "Approved by <admin>" on behalf', () => {
