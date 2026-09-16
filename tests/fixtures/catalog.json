@@ -1,0 +1,398 @@
+{
+ "groups": [
+  {
+   "id": "biz",
+   "name": "Business-as-usual operations",
+   "categories": [
+    {
+     "id": "B1",
+     "name": "Sales / business development / acquisition (B2G + B2B + international)",
+     "subs": [
+      {
+       "id": "B1s1",
+       "name": "New public-sector client acquisition (road/bridge authority, e.g. Magyar Közút, MÁV) — signed framework/contract",
+       "weight": 10
+      },
+      {
+       "id": "B1s2",
+       "name": "Winning the first client in a new international market (foreign bridge-management authority)",
+       "weight": 10
+      },
+      {
+       "id": "B1s3",
+       "name": "B2B partner agreement (engineering firm, contractor, sensor manufacturer) — sales channel",
+       "weight": 6
+      },
+      {
+       "id": "B1s4",
+       "name": "Converting a pilot/PoC into a paid engagement",
+       "weight": 7
+      },
+      {
+       "id": "B1s5",
+       "name": "Securing a framework agreement / DPS / public-procurement qualification",
+       "weight": 6
+      },
+      {
+       "id": "B1s6",
+       "name": "Key-account relationship management, upsell (multiple bridges at the same operator)",
+       "weight": 5
+      },
+      {
+       "id": "B1s7",
+       "name": "Tendering / bid writing for public procurement (technical + price)",
+       "weight": 5
+      },
+      {
+       "id": "B1s8",
+       "name": "Channeling the industry / professional network (referrals)",
+       "weight": 4
+      }
+     ]
+    },
+    {
+     "id": "B2",
+     "name": "Grants / non-dilutive funding",
+     "subs": [
+      {
+       "id": "B2s1",
+       "name": "Writing and winning domestic R&D grants (NKFIH, KFI, GINOP-successor)",
+       "weight": 8
+      },
+      {
+       "id": "B2s2",
+       "name": "Writing and winning EU grants (Horizon Europe, EIC Accelerator)",
+       "weight": 9
+      },
+      {
+       "id": "B2s3",
+       "name": "Organizing consortium partners for a grant (BME, industry partner)",
+       "weight": 5
+      },
+      {
+       "id": "B2s4",
+       "name": "Managing grant accounting, reporting and audit compliance",
+       "weight": 4
+      },
+      {
+       "id": "B2s5",
+       "name": "Coordinating grant writers / consultants, building the grant pipeline",
+       "weight": 3
+      }
+     ]
+    },
+    {
+     "id": "B3",
+     "name": "Investor preparation / fundraising",
+     "subs": [
+      {
+       "id": "B3s1",
+       "name": "Assembling the pitch deck and equity story",
+       "weight": 6
+      },
+      {
+       "id": "B3s2",
+       "name": "Building and updating the financial model / business plan",
+       "weight": 6
+      },
+      {
+       "id": "B3s3",
+       "name": "Compiling data-room / due-diligence materials (IP, legal, financial)",
+       "weight": 6
+      },
+      {
+       "id": "B3s4",
+       "name": "Preparing the cap table and valuation, negotiating the term sheet",
+       "weight": 7
+      },
+      {
+       "id": "B3s5",
+       "name": "Investor relationship building, roadshow, bringing an investor on board",
+       "weight": 9
+      },
+      {
+       "id": "B3s6",
+       "name": "Investor-side reporting, board materials",
+       "weight": 4
+      }
+     ]
+    },
+    {
+     "id": "B4",
+     "name": "Core technology / IP development (product core, not project-specific)",
+     "subs": [
+      {
+       "id": "B4s1",
+       "name": "General B-WIM algorithm development, accuracy optimization (product level)",
+       "weight": 9
+      },
+      {
+       "id": "B4s2",
+       "name": "RTS-DT digital-twin platform / architecture development",
+       "weight": 9
+      },
+      {
+       "id": "B4s3",
+       "name": "General FEM / structural model library, validation framework",
+       "weight": 7
+      },
+      {
+       "id": "B4s4",
+       "name": "AI/ML model family, retraining pipeline (product level)",
+       "weight": 8
+      },
+      {
+       "id": "B4s5",
+       "name": "Sensor / measurement hardware development, specification (patentable element)",
+       "weight": 7
+      },
+      {
+       "id": "B4s6",
+       "name": "Software platform / web application / database infrastructure (core)",
+       "weight": 7
+      },
+      {
+       "id": "B4s7",
+       "name": "Scalable data pipeline and data-quality system",
+       "weight": 6
+      },
+      {
+       "id": "B4s8",
+       "name": "Product roadmap, architecture decisions, technical vision",
+       "weight": 5
+      }
+     ]
+    },
+    {
+     "id": "B5",
+     "name": "Operations / management / compliance",
+     "subs": [
+      {
+       "id": "B5s1",
+       "name": "Company leadership, executive duties, team coordination",
+       "weight": 6
+      },
+      {
+       "id": "B5s2",
+       "name": "Finance / controlling / cash-flow management",
+       "weight": 5
+      },
+      {
+       "id": "B5s3",
+       "name": "SOPs, quality system, delivery processes",
+       "weight": 3
+      },
+      {
+       "id": "B5s4",
+       "name": "GDPR / data handling / information security (critical-infrastructure data)",
+       "weight": 4
+      },
+      {
+       "id": "B5s5",
+       "name": "Public-procurement and contractual compliance, legal coordination",
+       "weight": 4
+      },
+      {
+       "id": "B5s6",
+       "name": "HR / recruitment / hiring key staff (e.g. formalizing sales)",
+       "weight": 4
+      },
+      {
+       "id": "B5s7",
+       "name": "Supplier and asset management (sensors, hardware procurement)",
+       "weight": 3
+      }
+     ]
+    },
+    {
+     "id": "B6",
+     "name": "Marketing / brand / scientific reach",
+     "subs": [
+      {
+       "id": "B6s1",
+       "name": "Scientific publication, conference presentation (credibility, lead generation)",
+       "weight": 4
+      },
+      {
+       "id": "B6s2",
+       "name": "Industry / regulatory relationship building, organizing professional events",
+       "weight": 4
+      },
+      {
+       "id": "B6s3",
+       "name": "Website, case studies, reference materials",
+       "weight": 3
+      },
+      {
+       "id": "B6s4",
+       "name": "PR, press, social media, brand building",
+       "weight": 2
+      },
+      {
+       "id": "B6s5",
+       "name": "Maintaining the BME / university relationship as a reputation and talent channel",
+       "weight": 3
+      }
+     ]
+    },
+    {
+     "id": "B7",
+     "name": "BME-IP & legal foundations (investment readiness)",
+     "subs": [
+      {
+       "id": "B7s1",
+       "name": "Settling the BME-IP chain (assignment / exclusive license / spin-off) — signed agreement",
+       "weight": 9
+      },
+      {
+       "id": "B7s2",
+       "name": "Delineating background vs. foreground IP, copyright assignment from members",
+       "weight": 6
+      },
+      {
+       "id": "B7s3",
+       "name": "Trade-secret / know-how protection system (for the core algorithm)",
+       "weight": 5
+      },
+      {
+       "id": "B7s4",
+       "name": "Patenting the sensor/hardware element (where infringement is detectable)",
+       "weight": 5
+      },
+      {
+       "id": "B7s5",
+       "name": "Preparing the articles of association + syndicate agreement (milestones)",
+       "weight": 6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "proj",
+   "name": "Projects",
+   "categories": [
+    {
+     "id": "P1",
+     "name": "Project preparation & site",
+     "subs": [
+      {
+       "id": "P1s1",
+       "name": "Site survey, bridge condition assessment, measurement plan",
+       "weight": 6
+      },
+      {
+       "id": "P1s2",
+       "name": "Bridge preparation: sensor placement plan, installation concept",
+       "weight": 6
+      },
+      {
+       "id": "P1s3",
+       "name": "Permitting, bridge-operator coordination, traffic management for installation",
+       "weight": 4
+      }
+     ]
+    },
+    {
+     "id": "P2",
+     "name": "Installation & data collection",
+     "subs": [
+      {
+       "id": "P2s1",
+       "name": "Physical installation and commissioning of sensors on the bridge",
+       "weight": 7
+      },
+      {
+       "id": "P2s2",
+       "name": "Calibration measurement campaign (reference vehicle, load testing)",
+       "weight": 6
+      },
+      {
+       "id": "P2s3",
+       "name": "Setting up continuous data collection, remote data link",
+       "weight": 4
+      }
+     ]
+    },
+    {
+     "id": "P3",
+     "name": "Data & modeling (project-specific)",
+     "subs": [
+      {
+       "id": "P3s1",
+       "name": "Building the bridge-specific database (historical + live data)",
+       "weight": 6
+      },
+      {
+       "id": "P3s2",
+       "name": "Building the bridge-specific FEM / structural model",
+       "weight": 8
+      },
+      {
+       "id": "P3s3",
+       "name": "Setting up the RTS-DT digital twin for the given bridge, integration",
+       "weight": 8
+      },
+      {
+       "id": "P3s4",
+       "name": "Training and calibrating the AI / B-WIM model on the bridge data",
+       "weight": 8
+      },
+      {
+       "id": "P3s5",
+       "name": "Model validation, accuracy verification in front of the client",
+       "weight": 6
+      }
+     ]
+    },
+    {
+     "id": "P4",
+     "name": "Delivery & client",
+     "subs": [
+      {
+       "id": "P4s1",
+       "name": "Software integration, client-dashboard customization",
+       "weight": 5
+      },
+      {
+       "id": "P4s2",
+       "name": "Structural evaluation report / expert opinion for the client",
+       "weight": 6
+      },
+      {
+       "id": "P4s3",
+       "name": "Handover, client-side training",
+       "weight": 4
+      },
+      {
+       "id": "P4s4",
+       "name": "Project management, client relationship during the project",
+       "weight": 5
+      }
+     ]
+    },
+    {
+     "id": "P5",
+     "name": "Operations (recurring)",
+     "subs": [
+      {
+       "id": "P5s1",
+       "name": "Continuous monitoring, alert handling, SLA fulfillment",
+       "weight": 5
+      },
+      {
+       "id": "P5s2",
+       "name": "Maintenance, sensor replacement, model recalibration",
+       "weight": 4
+      },
+      {
+       "id": "P5s3",
+       "name": "Periodic reporting, client review, contract-renewal preparation",
+       "weight": 4
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
