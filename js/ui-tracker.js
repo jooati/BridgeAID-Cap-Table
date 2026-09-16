@@ -28,8 +28,8 @@ export function renderTracker() {
   rows.forEach(r => {
     const isCur = isCurrent(S, r), col = isCollapsed(S, r), st = C.colStatus(S, r);
     html += `<th class="${col ? 'col-collapsed' : ''}" data-col="${esc(r.id)}"><div class="colhead ${isCur ? 'cur' : ''} ${r.kind !== 'month' ? 'special' : ''}">
-      <button class="vlbl arrow" data-act="toggleCol" data-rid="${esc(r.id)}" title="Expand">▶ ${esc(r.label)}</button>
-      <div class="top"><div><div class="kind">${r.kind === 'month' ? (isCur ? 'Current month' : 'Month') : 'Special period'}</div><div class="lbl">${esc(r.label)}</div></div>
+      <button class="vlbl arrow" data-act="toggleCol" data-rid="${esc(r.id)}" title="Expand">▶ ${st.fin ? '<span class="fin-badge" title="Finalised — every owner approved">✓</span> ' : ''}${esc(r.label)}</button>
+      <div class="top"><div><div class="kind">${r.kind === 'month' ? (isCur ? 'Current month' : 'Month') : 'Special period'}</div><div class="lbl">${esc(r.label)}${st.fin ? ' <span class="fin-badge" title="Finalised — every owner approved">✓</span>' : ''}</div></div>
         <div class="hbtns">${(admin && D.canRemoveMonth(r) && !isCur) ? `<button class="cbtn" data-act="removeRow" data-rid="${esc(r.id)}" title="Remove this month">×</button>` : ''}${isCur ? '' : `<button class="cbtn arrowbtn" data-act="toggleCol" data-rid="${esc(r.id)}" title="Collapse column">◀</button>`}</div></div>
       <div class="tot">Equity hours in period <b>${fmt1(comp[r.id].colTotal)}</b></div>
       <span class="st ${st.cls}">${st.txt}</span>

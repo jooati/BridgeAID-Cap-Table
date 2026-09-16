@@ -218,3 +218,16 @@ test('admin adds months one at a time; only months after Sep 2026 without approv
   assert.equal(t.$('#trackerTable thead th[data-col="m202611"] .colhead').classList.contains('cur'), true);
   assert.equal(t.$('#tab-tracker').hidden, false);
 });
+
+test('a finalised column shows a green ✓ badge next to its label, also in the collapsed strip', () => {
+  const S = t.D.S;
+  const finalIds = S.rows.filter(r => t.C.colFinal(S, r)).map(r => r.id), openIds = S.rows.filter(r => !t.C.colFinal(S, r)).map(r => r.id);
+  assert.ok(finalIds.length >= 2 && openIds.length >= 2);
+  finalIds.forEach(id => { const h = colHead(id); assert.ok(h.querySelector('.lbl .fin-badge'), id + ' header badge'); assert.ok(h.querySelector('.vlbl .fin-badge'), id + ' strip badge'); assert.equal(t.text(h.querySelector('.st')), 'Finalised'); });
+  openIds.forEach(id => assert.equal(colHead(id).querySelector('.fin-badge'), null, id + ' has no badge'));
+  /* collapse a finalised column: the strip still carries the check */
+  const fid = finalIds.find(id => id !== 'ip' && id !== 'incub') || finalIds[0];
+  t.tracker.toggleCol(fid);
+  assert.ok(colHead(fid).classList.contains('col-collapsed')); assert.ok(t.text(colHead(fid).querySelector('.vlbl')).startsWith('▶ ✓'));
+  t.tracker.toggleCol(fid);
+});

@@ -215,3 +215,6 @@ body.locked main{display:none;}
 .own-row .linked{font-size:12px;color:var(--slate);} .own-row .linked.none{color:var(--slate-light);font-style:italic;}
 .own-row .adm{margin-left:6px;} .own-row label.chk{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--slate);} .own-row label.chk input{width:auto;}
 .audit-line{font-size:10.5px;color:#D8DDE5;margin-top:4px;}
+/* finalised column: green check next to the period label (header and collapsed strip) */
+.fin-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;}
+th.col-collapsed .colhead .vlbl .fin-badge{width:16px;height:16px;font-size:11px;transform:rotate(180deg);}
