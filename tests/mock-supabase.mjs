@@ -16,7 +16,7 @@ const MASTER = ['owners', 'roles', 'salary_tables', 'salary_rates', 'task_groups
 const clone = x => JSON.parse(JSON.stringify(x));
 const same = (a, b) => String(a) === String(b);
 
-export function createMockSupabase({tables = {}, users = [], session = null, service = false} = {}) {
+export function createMockSupabase({tables = {}, users = [], session = null, service = false, fail = {}} = {}) {
   const db = {}; Object.keys(PK).forEach(t => db[t] = clone(tables[t] || []));
   const seq = {}; Object.keys(SERIAL).forEach(t => seq[t] = db[t].reduce((m, r) => Math.max(m, +r[SERIAL[t]] || 0), 0));
   const writes = [];                      // log: {table, op, rows}
@@ -97,7 +97,8 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
     then(res, rej) { return Promise.resolve().then(() => this.exec()).then(res, rej); }
     _pk(r) { return PK[this.table].map(k => String(r[k])).join('|'); }
     exec() {
-      const t = this.table, rows = db[t]; if (!rows) return {data: null, error: {message: `relation "${t}" does not exist`}};
+      const t = this.table, rows = db[t]; if (!rows) return {data: null, error: {message: `relation "${t}" does not exist`, code: '42P01'}};
+      if (sb.fail[t]) return {data: null, error: {...sb.fail[t]}};                        // simulated failure (missing table, RLS, column…)
       const matches = () => rows.filter(r => this.filters.every(f => f(r)));
       const fin = data => { if (this.wantSingle) return data.length === 1 ? {data: clone(data[0]), error: null} : {data: null, error: {message: 'JSON object requested, multiple (or no) rows returned'}}; return {data: clone(data), error: null}; };
       if (this.op === 'select') { let d = matches(); if (this.orderBy) { const {k, asc} = this.orderBy; d = [...d].sort((a, b) => (a[k] > b[k] ? 1 : a[k] < b[k] ? -1 : 0) * (asc ? 1 : -1)); } return fin(d); }
@@ -144,10 +145,12 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
   }
 
   const sb = {
-    db, writes, auth, realtime: rt, users,
+    db, writes, auth, realtime: rt, users, fail: {...fail},
     from(table) { return new Query(table); },
     async rpc(name) {
       if (name === 'list_auth_users') { if (!isAdmin()) return {data: null, error: {message: 'permission denied'}}; return {data: users.map(u => ({id: u.id, email: u.email})), error: null}; }
+      if (name === 'my_owner_id') { const o = myOwner(); return {data: o ? o.id : null, error: null}; }
+      if (name === 'is_admin') return {data: isAdmin(), error: null};
       return {data: null, error: {message: 'unknown rpc ' + name}};
     },
     channel(name) { const ch = {name, _handlers: [], status: null, on(type, filter, cb) { ch._handlers.push({table: filter.table || '*', cb}); return ch; }, subscribe(cb) { ch.status = 'SUBSCRIBED'; if (cb) cb('SUBSCRIBED'); return ch; }, unsubscribe() { ch.status = 'CLOSED'; } }; channels.push(ch); return ch; },

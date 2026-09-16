@@ -25,16 +25,32 @@ export async function getClient() {
 export function setMe(id) { me = id || null; }
 export function clearState() { S = null; }
 /* forget everything (used when the app is booted again against another client/document) */
-export async function reset() { await unsubscribeRealtime(); S = null; me = null; dirty.clear(); if (reloadTimer) clearTimeout(reloadTimer); reloadTimer = null; timers.forEach(r => clearTimeout(r.t)); timers.clear(); pending = 0; deferredReload = false; listeners.clear(); }
+export async function reset() { await unsubscribeRealtime(); S = null; me = null; loadStatus = {}; dirty.clear(); if (reloadTimer) clearTimeout(reloadTimer); reloadTimer = null; timers.forEach(r => clearTimeout(r.t)); timers.clear(); pending = 0; deferredReload = false; listeners.clear(); }
 
 /* ---------- change notifications: {type:'data'|'status'|'error', ...} ---------- */
 export function onChange(cb) { listeners.add(cb); return () => listeners.delete(cb); }
 function notify(ev) { listeners.forEach(cb => { try { cb(ev); } catch (e) { console.error(e); } }); }
 
 /* ---------- reads ---------- */
+/* one Error per failed query, carrying the raw Supabase fields; also logged in full to the console */
+export function dbError(table, error, op = 'select') {
+  const raw = error || {}; const e = new Error(`${table}: ${raw.message || String(error)}`);
+  Object.assign(e, {table, op, code: raw.code, details: raw.details, hint: raw.hint, status: raw.status, raw});
+  console.error(`[supabase] ${op} ${table} failed`, {message: raw.message, code: raw.code, details: raw.details, hint: raw.hint, status: raw.status, table, op});
+  return e;
+}
 async function rows(table, order) {
   let q = sb.from(table).select('*'); if (order) q = q.order(order, {ascending: true});
-  const {data, error} = await q; if (error) throw error; return data || [];
+  const {data, error} = await q; if (error) throw dbError(table, error); return data || [];
+}
+/* outcome of the last load per table: undefined = never tried, null = ok, Error = failed */
+export let loadStatus = {};
+export const CORE_TABLES = ['owners', 'periods', 'entries'];
+export function coreFailed() { return CORE_TABLES.some(t => loadStatus[t]); }
+/* run one table load; a failure degrades only that slice (returns null) and is reported, never thrown */
+async function settled(table, fn) {
+  try { const d = await fn(); loadStatus[table] = null; return d; }
+  catch (e) { const err = e.table ? e : dbError(table, e); loadStatus[table] = err; notify({type: 'error', message: `Could not load ${table}: ${err.raw && err.raw.message || err.message}`, table, error: err}); return null; }
 }
 const genLast = (a, b) => ((a.includes('_x') ? 1 : 0) - (b.includes('_x') ? 1 : 0)) || a.localeCompare(b, 'en', {numeric: true});
 const mapOwner = o => ({id: o.id, name: o.name, baseline: +o.baseline_pct || 0, last: !!o.sort_last, isAdmin: !!o.is_admin, authUid: o.auth_uid || null});
@@ -75,27 +91,32 @@ function applyApprovals(approvals) {
   approvals.forEach(a => { const r = C.rowById(S, a.period_id); if (r) r.approvals[a.owner_id] = a.approved_by || a.owner_id; });   // value = who ticked
 }
 
+/* Every table is fetched independently: whatever fails leaves its slice empty and is recorded in loadStatus.
+   The audit log is loaded separately afterwards — the tracker never depends on it. */
 export async function loadAll() {
-  const [owners, roles, tables, rates, groups, cats, tasks, periods, entries, salaries, approvals, audit] = await Promise.all([
-    rows('owners'), rows('roles'), rows('salary_tables', 'effective_from'), rows('salary_rates'), rows('task_groups'), rows('task_categories'), rows('tasks'),
-    rows('periods'), rows('entries', 'id'), rows('salaries'), rows('approvals'), auditRows()]);
+  const T = [['owners'], ['roles'], ['salary_tables', 'effective_from'], ['salary_rates'], ['task_groups'], ['task_categories'], ['tasks'], ['periods'], ['entries', 'id'], ['salaries'], ['approvals']];
+  const got = await Promise.all(T.map(([t, o]) => settled(t, () => rows(t, o))));      // settled() never rejects
+  const [owners, roles, tables, rates, groups, cats, tasks, periods, entries, salaries, approvals] = got.map(x => x || []);
   S = {schema: C.SCHEMA_NAME, version: C.SCHEMA_VERSION, owners: owners.map(mapOwner), roles: roles.map(mapRole).sort(roleSort),
-    salaryTables: mapTables(tables, rates), catalog: mapCatalog(groups, cats, tasks), rows: periods.map(p => mapPeriod(p)), audit, meta: {updatedAt: null, updatedBy: null}};
+    salaryTables: mapTables(tables, rates), catalog: mapCatalog(groups, cats, tasks), rows: periods.map(p => mapPeriod(p)), audit: [], auditError: null, meta: {updatedAt: null, updatedBy: null}};
   applyEntries(entries); applySalaries(salaries); applyApprovals(approvals);
+  const audit = await settled('audit_log', auditRows);
+  if (audit) S.audit = audit; else S.auditError = loadStatus.audit_log;
   return S;
 }
 
 /* slice reloads (Realtime) */
+/* slice reloads (Realtime) — each one is settled(): a failure keeps the previous slice */
 const reloaders = {
-  owners: async () => { S.owners = (await rows('owners')).map(mapOwner); },
-  roles: async () => { S.roles = (await rows('roles')).map(mapRole).sort(roleSort); },
-  salary: async () => { const [t, r] = await Promise.all([rows('salary_tables', 'effective_from'), rows('salary_rates')]); S.salaryTables = mapTables(t, r); },
-  catalog: async () => { const [g, c, t] = await Promise.all([rows('task_groups'), rows('task_categories'), rows('tasks')]); S.catalog = mapCatalog(g, c, t); },
-  periods: async () => { const ps = await rows('periods'); const keep = new Set(ps.map(p => p.id)); S.rows = ps.map(p => mapPeriod(p, C.rowById(S, p.id))); S.rows = S.rows.filter(r => keep.has(r.id)); },
-  entries: async () => applyEntries(await rows('entries', 'id')),
-  salaries: async () => applySalaries(await rows('salaries')),
-  approvals: async () => applyApprovals(await rows('approvals')),
-  audit: async () => { S.audit = await auditRows(); },
+  owners: async () => { const d = await settled('owners', () => rows('owners')); if (d) S.owners = d.map(mapOwner); },
+  roles: async () => { const d = await settled('roles', () => rows('roles')); if (d) S.roles = d.map(mapRole).sort(roleSort); },
+  salary: async () => { const [t, r] = await Promise.all([settled('salary_tables', () => rows('salary_tables', 'effective_from')), settled('salary_rates', () => rows('salary_rates'))]); if (t && r) S.salaryTables = mapTables(t, r); },
+  catalog: async () => { const [g, c, t] = await Promise.all([settled('task_groups', () => rows('task_groups')), settled('task_categories', () => rows('task_categories')), settled('tasks', () => rows('tasks'))]); if (g && c && t) S.catalog = mapCatalog(g, c, t); },
+  periods: async () => { const ps = await settled('periods', () => rows('periods')); if (!ps) return; const keep = new Set(ps.map(p => p.id)); S.rows = ps.map(p => mapPeriod(p, C.rowById(S, p.id))); S.rows = S.rows.filter(r => keep.has(r.id)); },
+  entries: async () => { const d = await settled('entries', () => rows('entries', 'id')); if (d) applyEntries(d); },
+  salaries: async () => { const d = await settled('salaries', () => rows('salaries')); if (d) applySalaries(d); },
+  approvals: async () => { const d = await settled('approvals', () => rows('approvals')); if (d) applyApprovals(d); },
+  audit: async () => { const d = await settled('audit_log', auditRows); if (d) { S.audit = d; S.auditError = null; } else S.auditError = loadStatus.audit_log; },
 };
 const SLICE_OF = {owners: 'owners', roles: 'roles', salary_tables: 'salary', salary_rates: 'salary', tasks: 'catalog', task_categories: 'catalog', task_groups: 'catalog', periods: 'periods', entries: 'entries', salaries: 'salaries', approvals: 'approvals', audit_log: 'audit'};
 export const REALTIME_TABLES = ['periods', 'entries', 'salaries', 'approvals', 'owners', 'salary_tables', 'salary_rates', 'tasks', 'audit_log'];

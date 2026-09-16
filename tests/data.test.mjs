@@ -83,3 +83,86 @@ test('a failed write reports an error and resyncs the slice', async () => {
   assert.equal(t.C.taskById(t.D.S, 'B1s1').weight, 10);
   t.sb.auth.setSession(t.USERS[0]);
 });
+
+/* ---------- resilient loading: one missing / forbidden table never blanks the app ---------- */
+const PGRST_404 = {message: "Could not find the table 'public.audit_log' in the schema cache", code: '42P01', details: null, hint: null, status: 404};
+async function withConsoleErrors(fn) { const orig = console.error, calls = []; console.error = (...a) => calls.push(a); try { await fn(); } finally { console.error = orig; } return calls; }
+const diagRow = (t, name) => t.$(`#diagBody tr[data-probe="${name}"]`);
+async function openDiag(t) { t.$('#syncPill').click(); await t.diag.lastRun; }
+
+test('resilience (i): with every table OK the app renders and every probe passes', async () => {
+  const t = await setup();
+  assert.equal(t.$$('#trackerTable tbody tr[data-owner]').length, 7);
+  assert.ok(Object.values(t.D.loadStatus).every(v => v === null)); assert.equal(t.D.coreFailed(), false);
+  assert.equal(t.$('#notice').hidden, true); assert.equal(t.text(t.$('#syncPill')), 'Live');
+  await openDiag(t);
+  assert.equal(t.$('#diagModal').hidden, false);
+  assert.equal(t.$$('#diagBody tr').length, 12 + 2); assert.ok(t.$$('#diagBody tr').every(r => r.classList.contains('ok')));
+  assert.ok(t.text(diagRow(t, 'my_owner_id()')).includes('"jal"')); assert.ok(t.text(diagRow(t, 'is_admin()')).includes('true'));
+  assert.ok(t.text(t.$('#diagText')).startsWith('All 14 probes OK'));
+  t.$('#diagClose').click(); assert.equal(t.$('#diagModal').hidden, true);
+});
+
+test('resilience (ii): audit_log missing (404 / 42P01) → tracker renders, report shows the notice, panel marks audit_log', async () => {
+  let t; const errs = await withConsoleErrors(async () => { t = await setup({fail: {audit_log: PGRST_404}}); });
+  assert.equal(t.$$('#trackerTable tbody tr[data-owner]').length, 7, 'tracker rendered');
+  assert.equal(t.$$('#trackerTable thead th[data-col]').length, 12);
+  assert.deepEqual(t.D.S.audit, []); assert.equal(t.D.S.auditError.code, '42P01'); assert.equal(t.D.loadStatus.audit_log.status, 404);
+  assert.ok(t.$('#auditBody [data-audit-unavailable]')); assert.ok(t.text(t.$('#auditBody')).startsWith('Audit log unavailable — run the MIGRATION block'));
+  assert.equal(t.text(t.$('#syncPill')), 'Live', 'an optional table does not mean "Load failed"'); assert.equal(t.D.coreFailed(), false);
+  assert.equal(t.$('#notice').hidden, true);
+  assert.ok(t.text(t.$('#toast')).includes('Could not load audit_log'), 'toast');
+  const logged = errs.find(a => /audit_log/.test(String(a[0]))); assert.ok(logged, 'full error logged'); assert.equal(logged[1].code, '42P01'); assert.equal(logged[1].status, 404); assert.equal(logged[1].table, 'audit_log');
+  await openDiag(t);
+  const row = diagRow(t, 'audit_log'); assert.ok(row.classList.contains('fail')); assert.ok(t.text(row).includes('ERROR')); assert.ok(t.text(row).includes('code 42P01')); assert.ok(t.text(row).includes('HTTP 404'));
+  assert.ok(t.text(row).includes("Could not find the table 'public.audit_log'"));
+  assert.ok(diagRow(t, 'owners').classList.contains('ok')); assert.ok(t.text(t.$('#diagText')).startsWith('1 of 14 probes failed'));
+  /* once the table appears (migration run), a realtime/reload catch-up clears the notice */
+  delete t.sb.fail.audit_log; t.D.onRealtime('audit_log'); await t.D.flushReload();
+  assert.equal(t.D.S.auditError, null); assert.equal(t.$('#auditBody [data-audit-unavailable]'), null);
+});
+
+test('resilience (iii): an RLS error (42501) on one table degrades only that feature', async () => {
+  const t = await setup({fail: {tasks: {message: 'permission denied for table tasks', code: '42501', details: null, hint: null, status: 403}}});
+  assert.equal(t.$$('#trackerTable tbody tr[data-owner]').length, 7); assert.equal(t.$$('#trackerTable .ocard').length, 84);
+  assert.equal(t.C.allTasks(t.D.S).length, 0); assert.equal(t.$$('#taskSection .td-sub').length, 0, 'catalog empty, section still renders');
+  assert.equal(t.$$('#taskSection .td-cat').length, 12, 'categories loaded independently');
+  assert.ok(t.text(t.$('#trackerTable')).includes('Finance / controlling'), 'entries keep their task_name snapshot');
+  assert.equal(t.D.loadStatus.tasks.code, '42501'); assert.equal(t.D.loadStatus.entries, null);
+  assert.equal(t.text(t.$('#syncPill')), 'Live'); assert.equal(t.D.coreFailed(), false);
+  await openDiag(t);
+  assert.ok(diagRow(t, 'tasks').classList.contains('fail')); assert.ok(t.text(diagRow(t, 'tasks')).includes('permission denied for table tasks · code 42501'));
+  assert.ok(t.text(diagRow(t, 'tasks')).includes('Last load:'));
+  assert.ok(diagRow(t, 'entries').classList.contains('ok'));
+});
+
+test('resilience (iv): a missing-column error (42703) on one table degrades only that feature', async () => {
+  const t = await setup({fail: {salaries: {message: 'column salaries.gross_eur does not exist', code: '42703', details: null, hint: 'Perhaps you meant to reference the column "salaries.gross".', status: 400}}});
+  assert.equal(t.$$('#trackerTable tbody tr[data-owner]').length, 7);
+  const c = t.$('#trackerTable .ocard[data-card="m202512:hb"]'); assert.equal(c.querySelector('.pay select').value, '', 'no salary data');
+  assert.ok(t.text(c.querySelector('.kv.sum')).includes('Σ hours 80.0'), 'entries still there');
+  assert.equal(t.D.loadStatus.salaries.code, '42703'); assert.equal(t.text(t.$('#syncPill')), 'Live');
+  await openDiag(t);
+  const row = diagRow(t, 'salaries'); assert.ok(row.classList.contains('fail')); assert.ok(t.text(row).includes('code 42703')); assert.ok(t.text(row).includes('hint: Perhaps you meant'));
+  assert.ok(diagRow(t, 'salary_rates').classList.contains('ok'));
+});
+
+test('resilience (v): an account not linked to any owner gets a read-only app with a notice, not a failure', async () => {
+  const t = await setup({user: 'new@example.com'});
+  assert.equal(t.document.body.classList.contains('locked'), false); assert.ok(t.D.S);
+  assert.equal(t.$$('#trackerTable tbody tr[data-owner]').length, 7);
+  assert.equal(t.A.owner, null); assert.equal(t.D.me, null);
+  assert.equal(t.$('#notice').hidden, false); assert.ok(t.text(t.$('#notice')).includes('not linked to an owner')); assert.ok(t.text(t.$('#notice')).includes('new@example.com'));
+  assert.ok(t.$$('#trackerTable .ocard').every(c => c.classList.contains('ro'))); assert.ok(t.$$('#trackerTable .appr input').every(i => i.disabled));
+  assert.equal(t.text(t.$('#syncPill')), 'Live');
+  await openDiag(t);
+  assert.ok(t.text(diagRow(t, 'my_owner_id()')).includes('null')); assert.ok(t.text(diagRow(t, 'is_admin()')).includes('false'));
+});
+
+test('resilience (vi): a failed core table (owners) shows "Load failed" and a notice, and still renders what loaded', async () => {
+  const t = await setup({fail: {owners: {message: 'permission denied for table owners', code: '42501', status: 403}}});
+  assert.equal(t.document.body.classList.contains('locked'), false); assert.ok(t.D.S);
+  assert.equal(t.D.coreFailed(), true); assert.equal(t.text(t.$('#syncPill')), 'Load failed'); assert.equal(t.$('#syncPill').className, 'pill offline');
+  assert.equal(t.$$('#trackerTable thead th[data-col]').length, 12, 'periods still rendered');
+  assert.ok(t.text(t.$('#notice')).includes('Some data could not be loaded (owners)'));
+});

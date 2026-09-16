@@ -8,6 +8,7 @@ import { renderTracker, initTracker } from './ui-tracker.js';
 import { renderTasks, initTasks } from './ui-tasks.js';
 import { renderOwners, initOwners, invalidateAuthUsers } from './ui-owners.js';
 import { renderReport, initReport, exportCSV, exportPDF } from './ui-report.js';
+import { initDiag } from './ui-diag.js';
 
 export const TABS = [
   {slug: 'owners', label: 'Owners, roles & setup', panel: 'tab-owners', num: 1},
@@ -35,7 +36,16 @@ export function isRenderDeferred() { return deferred; }
 /* move focus from one field to another without the blur of the first one re-rendering (Enter → next field) */
 let suppress = false;
 export function moveFocus(fn) { suppress = true; try { fn(); } finally { suppress = false; } }
-function clearUi() { ['trackerTable', 'bars', 'taskSection', 'salaryTables', 'ownerList', 'reportBody'].forEach(id => { const el = $(id); if (el) el.innerHTML = ''; }); }
+function clearUi() { ['trackerTable', 'bars', 'taskSection', 'salaryTables', 'ownerList', 'reportBody', 'auditBody'].forEach(id => { const el = $(id); if (el) el.innerHTML = ''; }); showNotice(''); }
+/* persistent banner under the header (unlinked account, failed core tables) */
+export function showNotice(msg) { const n = $('notice'); if (!n) return; n.textContent = msg || ''; n.hidden = !msg; }
+export function refreshNotice() {
+  if (!A.isSignedIn() || !D.S) { showNotice(''); return; }
+  const failed = D.CORE_TABLES.filter(t => D.loadStatus[t]);
+  if (failed.length) { showNotice(`Some data could not be loaded (${failed.join(', ')}) — the tracker may be incomplete. Click the status pill for diagnostics.`); return; }
+  if (!A.owner) { showNotice(`Your account (${A.session.user.email || ''}) is not linked to an owner yet — ask an admin (Owners tab). Everything is read-only.`); return; }
+  showNotice('');
+}
 
 /* ---------- tabs ---------- */
 export function activeTabSlug() { return activeTab; }
@@ -75,10 +85,10 @@ export async function boot(opts = {}) {
   if (opts.client) D.setClient(opts.client);
   if (bootedDoc !== document) {
     bootedDoc = document;
-    renderTabNav(); wireHeader(); initTracker(); initTasks(); initOwners(); initReport();
+    renderTabNav(); wireHeader(); initTracker(); initTasks(); initOwners(); initReport(); initDiag();
     D.onChange(ev => {
-      if (ev.type === 'data') { if (!ev.slices || ev.slices.includes('owners') || ev.slices.includes('all')) { A.resolveOwner(); invalidateAuthUsers(); } requestRender(); }
-      else if (ev.type === 'status') setPill(ev.online ? 'online' : 'offline', ev.text || (ev.online ? 'Live' : 'Offline'));
+      if (ev.type === 'data') { if (!ev.slices || ev.slices.includes('owners') || ev.slices.includes('all')) { A.resolveOwner(); invalidateAuthUsers(); } refreshNotice(); requestRender(); }
+      else if (ev.type === 'status') setPill(ev.online && !D.coreFailed() ? 'online' : 'offline', D.coreFailed() ? 'Load failed' : (ev.text || (ev.online ? 'Live' : 'Offline')));
       else if (ev.type === 'error') { toast(ev.message, 'err'); }
     });
   }
@@ -90,9 +100,10 @@ export async function boot(opts = {}) {
   await A.initAuth(sb, {
     onSignedIn: async () => {
       setPill('offline', 'Loading…');
-      await D.loadAll(); A.resolveOwner(); renderAll(); goTab(tabFromHash(), false);
+      await D.loadAll();                              // never throws: failed tables degrade their own slice
+      A.resolveOwner(); renderAll(); goTab(tabFromHash(), false); refreshNotice();
+      if (D.coreFailed()) setPill('offline', 'Load failed');
       D.subscribeRealtime();
-      if (!A.owner) toast('Your account is not linked to an owner yet — ask an admin (Owners tab).', 'err');
     },
     onSignedOut: () => { D.unsubscribeRealtime(); D.clearState(); clearUi(); setPill('local', 'Offline'); },
     onToast: toast,

@@ -217,6 +217,7 @@ export function filteredAudit(S, f) {
 }
 export function renderAudit() {
   const S = D.S, host = document.getElementById('auditBody'); if (!S || !host) return;
+  if (S.auditError) { const cnt0 = document.getElementById('auCount'); if (cnt0) cnt0.textContent = ''; host.innerHTML = `<div class="notice-warn" data-audit-unavailable>Audit log unavailable — run the MIGRATION block at the end of <code>supabase/schema.sql</code> in the Supabase SQL editor. <span class="muted small">(${esc(S.auditError.raw && S.auditError.raw.message || S.auditError.message)})</span></div>`; return; }
   const keep = (sel, html) => { const v = sel.value || 'all'; sel.innerHTML = html; sel.value = [...sel.options].some(x => x.value === v) ? v : 'all'; };
   const pSel = document.getElementById('auPeriod'), oSel = document.getElementById('auOwner'), tSel = document.getElementById('auTable');
   keep(pSel, '<option value="all">All periods</option>' + C.displayRows(S).map(r => `<option value="${esc(r.id)}">${esc(r.label)}</option>`).join(''));

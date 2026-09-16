@@ -72,7 +72,7 @@ test('a signed-in account that is not linked to an owner sees everything read-on
   const t = await setup({user: 'new@example.com'});
   assert.equal(t.document.body.classList.contains('locked'), false);
   assert.equal(t.text(t.$('#loginLbl')), 'new@example.com'); assert.equal(t.A.owner, null); assert.equal(t.D.me, null);
-  assert.ok(t.text(t.$('#toast')).includes('not linked to an owner'));
+  assert.equal(t.$('#notice').hidden, false); assert.ok(t.text(t.$('#notice')).includes('not linked to an owner'));
   assert.ok(t.$$('#trackerTable .ocard').every(c => c.classList.contains('ro')));
   assert.ok(t.$$('#trackerTable .appr input').every(i => i.disabled));
   assert.equal(t.text(t.$('#trackerTable .appr')), 'Not yet approved');

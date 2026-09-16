@@ -13,7 +13,7 @@
 <header class="topbar">
   <a class="brand" href="#tracker"><img class="brand-logo" alt="BridgeAID" src="assets/logo.png"></a>
   <nav class="topnav" id="topNav" aria-label="Sections"></nav>
-  <span id="syncPill" class="pill local" title="Connection to the shared database"><span class="dot"></span>Offline</span>
+  <button id="syncPill" type="button" class="pill local" title="Connection to the shared database — click for diagnostics"><span class="dot"></span>Offline</button>
   <div class="acct-wrap">
     <button id="loginBtn" class="btn-ghost login" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" title="Sign in"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="loginLbl">Sign in</span><span id="adminBadge" class="badge" hidden>admin</span></button>
     <div id="accountMenu" class="account-menu" role="menu" hidden>
@@ -30,7 +30,18 @@
     </div>
   </div>
 </header>
+<div id="notice" class="notice-bar" role="status" hidden></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- Connection diagnostics (click the status pill) -->
+<div id="diagModal" class="modal-back" hidden>
+  <div class="modal diag" role="dialog" aria-labelledby="diagTitle">
+    <h2 id="diagTitle">Connection diagnostics</h2>
+    <p id="diagText">One probe per table and RPC against the Supabase project.</p>
+    <table class="rp"><thead><tr><th>Probe</th><th>Result</th><th>Details</th></tr></thead><tbody id="diagBody"></tbody></table>
+    <div class="actions"><button type="button" id="diagRun" class="btn-gold">Run again</button><button type="button" id="diagClose" class="btn-quiet">Close</button></div>
+  </div>
+</div>
 
 <!-- Sign in / forgot password / set new password / change password -->
 <div id="authModal" class="modal-back" hidden>
