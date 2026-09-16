@@ -64,7 +64,7 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
     if (!uid()) return 'not authenticated';
     if (MASTER.includes(table)) return isAdmin() ? null : 'new row violates row-level security policy for table "' + table + '"';
     if (table === 'entries' || table === 'salaries') { const me = myOwner(); const own = me && row.owner_id === me.id; return ((own || isAdmin()) && !periodFinal(row.period_id)) ? null : 'new row violates row-level security policy for table "' + table + '"'; }
-    if (table === 'approvals') { const me = myOwner(); if (op === 'insert') return me && row.owner_id === me.id ? null : 'new row violates row-level security policy for table "approvals"'; return (me && row.owner_id === me.id) || isAdmin() ? null : 'denied'; }
+    if (table === 'approvals') { const me = myOwner(); if (op === 'insert') return (me && row.owner_id === me.id) || isAdmin() ? null : 'new row violates row-level security policy for table "approvals"'; return (me && row.owner_id === me.id) || isAdmin() ? null : 'denied'; }
     return null;
   }
 
@@ -100,6 +100,7 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
           else { if (t === 'salary_tables' && rows.some(r => r.effective_from === row.effective_from && r.id !== row.id)) { const ex = rows.find(r => r.effective_from === row.effective_from); if (this.op === 'upsert') { Object.assign(ex, row, {id: ex.id}); out.push(ex); continue; } return {data: null, error: {message: 'duplicate key value violates unique constraint "salary_tables_effective_from_key"'}}; }
             if (t === 'entries') { if (row.hours == null) row.hours = 0; if (row.created_at == null) row.created_at = new Date().toISOString(); }
             if (t === 'periods' && row.needs_reapproval == null) row.needs_reapproval = false;
+            if (t === 'approvals') { if (row.approved_by == null) row.approved_by = (myOwner() && myOwner().id) || row.owner_id; if (row.approved_at == null) row.approved_at = new Date().toISOString(); }
             rows.push(row); out.push(row); }
           if (t === 'entries' || t === 'salaries') afterCardChange(row.period_id); if (t === 'approvals') afterApproval(row.period_id);
         }

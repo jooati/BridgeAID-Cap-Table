@@ -51,7 +51,7 @@ export async function importState(sb, payload, opts = {}) {
     Object.entries(r.cells).forEach(([oid, c]) => { if (!ownerIds.has(oid)) return;
       (c.entries || []).forEach(e => entries.push({period_id: r.id, owner_id: oid, task_id: taskIds.has(e.taskId) ? e.taskId : null, task_name: taskName(e.taskId), hours: e.hours, weight_snapshot: e.weight}));
       if (r.kind === 'month' && (c.role || c.salary != null)) salaries.push({period_id: r.id, owner_id: oid, role_id: c.role || null, gross_eur: c.salary}); });
-    Object.keys(r.approvals || {}).forEach(oid => { if (ownerIds.has(oid) && r.approvals[oid]) approvals.push({period_id: r.id, owner_id: oid}); });
+    Object.keys(r.approvals || {}).forEach(oid => { const v = r.approvals[oid]; if (ownerIds.has(oid) && v) approvals.push({period_id: r.id, owner_id: oid, approved_by: (typeof v === 'string' && ownerIds.has(v)) ? v : oid}); });
   });
   await chunked(sb, 'entries', entries); await chunked(sb, 'salaries', salaries);
   log(`entries ${entries.length}, salaries ${salaries.length}`);

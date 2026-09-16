@@ -29,7 +29,7 @@ test('non-admin: only the own card is editable, only the own approval tick is en
   assert.ok(card(rid, 'jal').classList.contains('ro')); assert.ok(card(rid, 'jal').querySelector('table.mini input').disabled);
   assert.ok(card(rid, 'jal').querySelector('.addent input').disabled); assert.ok(card(rid, 'jal').querySelector('.pay select').disabled);
   assert.equal(card(rid, 'kd').querySelector('.appr input').disabled, false); assert.equal(t.text(card(rid, 'kd').querySelector('.appr')), 'Approve this month');
-  assert.ok(card(rid, 'jal').querySelector('.appr input').disabled); assert.equal(t.text(card(rid, 'jal').querySelector('.appr')), 'Not yet approved');
+  assert.ok(card(rid, 'jal').querySelector('.appr input').disabled, 'a non-admin cannot tick for others'); assert.equal(t.text(card(rid, 'jal').querySelector('.appr')), 'Not yet approved');
   assert.equal(t.$('#trackerTable [data-act="reopenRow"]'), null, 'no Reopen for owners');
   assert.equal(t.$('#trackerTable [data-act="removeRow"]'), null);
   /* editing the own card writes; trying another card is refused before any write */

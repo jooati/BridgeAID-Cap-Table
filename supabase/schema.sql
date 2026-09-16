@@ -4,12 +4,12 @@
 -- ============================================================================
 
 -- ---------- reset (dev-friendly; comment out after go-live) ----------
-drop table if exists approvals, salaries, entries, periods, tasks, task_categories, task_groups,
+-- drop table if exists approvals, salaries, entries, periods, tasks, task_categories, task_groups,
                      salary_rates, salary_tables, roles, owners cascade;
-drop function if exists is_admin() cascade;
-drop function if exists my_owner_id() cascade;
-drop function if exists reset_period_approvals() cascade;
-drop function if exists period_is_final(text) cascade;
+-- drop function if exists is_admin() cascade;
+-- drop function if exists my_owner_id() cascade;
+-- drop function if exists reset_period_approvals() cascade;
+-- drop function if exists period_is_final(text) cascade;
 
 -- ---------- master data ----------
 create table owners (
@@ -91,6 +91,7 @@ create table approvals (
   period_id   text references periods(id) on delete cascade,
   owner_id    text references owners(id) on delete cascade,
   approved_at timestamptz not null default now(),
+  approved_by text references owners(id),           -- who ticked: the owner, or an admin on their behalf
   primary key (period_id, owner_id)
 );
 
@@ -154,8 +155,11 @@ create policy salaries_own on salaries for all to authenticated
   using      ((owner_id = my_owner_id() or is_admin()) and not period_is_final(period_id))
   with check ((owner_id = my_owner_id() or is_admin()) and not period_is_final(period_id));
 
--- approvals: only your own tick; admins may clear any (reopen)
-create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id());
+-- approvals: your own tick, or an admin on anybody's behalf; admins may clear any (reopen)
+create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id() or is_admin());
+create function default_approved_by() returns trigger language plpgsql security definer as $$
+begin if new.approved_by is null then new.approved_by := coalesce(my_owner_id(), new.owner_id); end if; return new; end $$;
+create trigger approvals_by before insert on approvals for each row execute function default_approved_by();
 create policy approvals_own_del on approvals for delete to authenticated using (owner_id = my_owner_id() or is_admin());
 
 -- ---------- RPC: auth users for the admin "Owners ↔ users" panel (admin-only, security definer) ----------
@@ -291,3 +295,13 @@ language sql stable security definer set search_path = public as
 $$ select u.id, u.email::text from auth.users u where is_admin() order by u.email $$;
 revoke all on function list_auth_users() from public;
 grant execute on function list_auth_users() to authenticated;
+
+-- ---- approvals on behalf (admin) ----
+alter table approvals add column if not exists approved_by text references owners(id);
+update approvals set approved_by = owner_id where approved_by is null;
+create or replace function default_approved_by() returns trigger language plpgsql security definer as $$
+begin if new.approved_by is null then new.approved_by := coalesce(my_owner_id(), new.owner_id); end if; return new; end $$;
+drop trigger if exists approvals_by on approvals;
+create trigger approvals_by before insert on approvals for each row execute function default_approved_by();
+drop policy if exists approvals_own_ins on approvals;
+create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id() or is_admin());

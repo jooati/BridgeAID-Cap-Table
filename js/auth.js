@@ -16,7 +16,7 @@ export function siteUrl() { return window.location.origin + window.location.path
 export function isSignedIn() { return !!session; }
 /* permissions used by the UI */
 export function canEditCard(oid) { return !!session && (isAdmin || (!!owner && owner.id === oid)); }
-export function canApprove(oid) { return !!session && !!owner && owner.id === oid; }
+export function canApprove(oid) { return !!session && !!owner && (owner.id === oid || isAdmin); }   // admins may tick on anybody's behalf
 export function canMaster() { return !!session && isAdmin; }
 
 /* find the owner row for the signed-in user (call again after the owners slice reloads) */

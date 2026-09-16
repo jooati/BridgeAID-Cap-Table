@@ -67,10 +67,11 @@ test('approving, then editing hours clears every approval on the period and flag
   const rid = 'm202608';
   assert.equal(status(rid), 'Pending');
   const chk = card(rid, 'jal').querySelector('.appr input');
-  assert.equal(chk.disabled, false); assert.equal(card(rid, 'kd').querySelector('.appr input').disabled, true, 'only your own tick');
+  assert.equal(chk.disabled, false); assert.equal(card(rid, 'kd').querySelector('.appr input').disabled, false, 'an admin may tick on behalf of anybody');
   chk.checked = true; t.fire(chk, 'change'); await t.flush();
   assert.equal(status(rid), 'Approved 1/7');
-  assert.ok(t.sb.db.approvals.some(a => a.period_id === rid && a.owner_id === 'jal'));
+  assert.ok(t.sb.db.approvals.some(a => a.period_id === rid && a.owner_id === 'jal' && a.approved_by === 'jal'));
+  assert.equal(t.text(card(rid, 'jal').querySelector('.appr')), 'Approved');
   assert.ok(card(rid, 'jal').classList.contains('final') === false);
   const inp = card(rid, 'jal').querySelector('table.mini input');
   t.setValue(inp, '77'); await t.flush();
@@ -86,6 +87,20 @@ test('approving, then editing hours clears every approval on the period and flag
   const chk2 = card(rid, 'jal').querySelector('.appr input'); chk2.checked = true; t.fire(chk2, 'change'); await t.flush();
   assert.equal(status(rid), 'Re-approval needed');
   chk2.checked = false; t.fire(card(rid, 'jal').querySelector('.appr input'), 'change'); await t.flush();
+});
+
+test('an admin approves on behalf of another owner; the card says who ticked', async () => {
+  const rid = 'm202609';
+  const chk = card(rid, 'kd').querySelector('.appr input'); assert.equal(chk.disabled, false); assert.equal(t.text(card(rid, 'kd').querySelector('.appr')), 'Approve this month');
+  chk.checked = true; t.fire(chk, 'change'); await t.flush();
+  const row = t.sb.db.approvals.find(a => a.period_id === rid && a.owner_id === 'kd'); assert.ok(row); assert.equal(row.approved_by, 'jal');
+  assert.equal(t.C.rowById(t.D.S, rid).approvals.kd, 'jal');
+  assert.equal(t.text(card(rid, 'kd').querySelector('.appr')), 'Approved by JAL');
+  assert.equal(status(rid), 'Approved 1/7');
+  /* the admin can withdraw it again */
+  const chk2 = card(rid, 'kd').querySelector('.appr input'); chk2.checked = false; t.fire(chk2, 'change'); await t.flush();
+  assert.equal(t.sb.db.approvals.some(a => a.period_id === rid && a.owner_id === 'kd'), false);
+  assert.equal(t.text(card(rid, 'kd').querySelector('.appr')), 'Approve this month');
 });
 
 test('finalised periods are read-only; an admin can reopen them', async () => {

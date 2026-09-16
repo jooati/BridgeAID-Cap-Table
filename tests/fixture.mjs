@@ -52,8 +52,8 @@ export function makeDb({example = true} = {}) {
       ent(p.id, 'kb', 'Writing and winning domestic', 50); sal('kb', 'cso', 2000);
       ent(p.id, 'szb', 'Scientific publication', 30); sal('szb', 'civ', null);
       ent(p.id, 'vi', 'Finance / controlling', 45); sal('vi', 'it', 1000);
-      if (i < months.length - 2) owners.forEach(o => approvals.push({period_id: p.id, owner_id: o.id, approved_at: '2026-01-01T00:00:00Z'})); });
-    ['ip', 'incub'].forEach(pid => owners.forEach(o => approvals.push({period_id: pid, owner_id: o.id, approved_at: '2026-01-01T00:00:00Z'})));
+      if (i < months.length - 2) owners.forEach(o => approvals.push({period_id: p.id, owner_id: o.id, approved_at: '2026-01-01T00:00:00Z', approved_by: o.id})); });
+    ['ip', 'incub'].forEach(pid => owners.forEach(o => approvals.push({period_id: pid, owner_id: o.id, approved_at: '2026-01-01T00:00:00Z', approved_by: o.id})));
   }
   return {owners, roles, salary_tables, salary_rates, task_groups, task_categories, tasks, periods, entries, salaries, approvals};
 }

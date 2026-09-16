@@ -59,7 +59,7 @@ export function renderTracker() {
           <div class="kv paid ${k.over ? 'over' : ''}" title="${money(c.salary || 0)} ÷ ${money(k.market)} market (salary table from ${tb ? C.ymLabel(tb.from) : '—'}) × 160 h = paid hours; × average task weight = weighted deduction"><span class="k">Paid hours</span><span class="v">${fmt1(k.paidHours)} h${k.over ? ' (exceeds logged)' : ''} × avg. weight ${fmt1(k.avgW)} = ${fmt1(k.paidW)}</span></div></div>` : ''}
         <div class="kv eq" title="Paid hours are removed at your average task weight (${fmt1(k.avgW)} = Σ weighted ÷ Σ hours)"><span class="k">${fmt1(k.W)} − ${fmt1(k.paidW)} =</span><span class="v">Equity hours <b>${fmt1(k.equity)}</b></span></div>
         <div class="kv rule"><span class="k">Equity in this ${isM ? 'month' : 'period'}</span><span class="v">${fmt(k.monthly)}%</span></div>
-        <label class="appr ${appr ? 'done' : ''}"><input type="checkbox" ${appr ? 'checked' : ''} ${mayApprove ? '' : 'disabled'} data-act="setApproval" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}">${appr ? 'Approved this ' + (isM ? 'month' : 'period') : (mayApprove ? 'Approve this ' + (isM ? 'month' : 'period') : (A.isSignedIn() ? 'Not yet approved' : 'Sign in to approve'))}</label>
+        <label class="appr ${appr ? 'done' : ''}"><input type="checkbox" ${appr ? 'checked' : ''} ${mayApprove ? '' : 'disabled'} data-act="setApproval" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}">${appr ? esc(C.approvalLabel(S, r, o.id)) : (mayApprove ? 'Approve this ' + (isM ? 'month' : 'period') : (A.isSignedIn() ? 'Not yet approved' : 'Sign in to approve'))}</label>
       </div></td>`;
     });
     html += '</tr>';

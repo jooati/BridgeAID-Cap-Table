@@ -87,6 +87,10 @@ export function cellOf(row, oid) { return (row && row.cells[oid]) || {entries: [
 /* ---------- approvals ---------- */
 export function colApproved(S, row) { return S.owners.filter(o => row.approvals[o.id]).length; }
 export function colFinal(S, row) { return S.owners.length > 0 && S.owners.every(o => row.approvals[o.id]); }
+/* who ticked an owner's approval: the owner id, an admin's id, or null */
+export function approvedBy(row, oid) { const v = row.approvals[oid]; return v ? (typeof v === 'string' ? v : oid) : null; }
+/* 'Approved' | 'Approved by <admin>' | '' */
+export function approvalLabel(S, row, oid) { const by = approvedBy(row, oid); return !by ? '' : (by === oid ? 'Approved' : `Approved by ${ownerName(S, by)}`); }
 export function colStatus(S, row) {
   const n = colApproved(S, row), N = S.owners.length, fin = colFinal(S, row), needs = row.audit.needsReapproval;
   return {n, N, fin, needs, cls: fin ? 'final' : (needs ? 'needs' : ''), txt: fin ? 'Finalised' : (needs ? 'Re-approval needed' : (n ? `Approved ${n}/${N}` : 'Pending'))};

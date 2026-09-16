@@ -69,7 +69,7 @@ function applySalaries(salaries) {
 }
 function applyApprovals(approvals) {
   S.rows.forEach(r => r.approvals = {});
-  approvals.forEach(a => { const r = C.rowById(S, a.period_id); if (r) r.approvals[a.owner_id] = true; });
+  approvals.forEach(a => { const r = C.rowById(S, a.period_id); if (r) r.approvals[a.owner_id] = a.approved_by || a.owner_id; });   // value = who ticked
 }
 
 export async function loadAll() {
@@ -190,8 +190,8 @@ export function setSalary(rowId, oid, patch) {
 /* ----- approvals ----- */
 export function setApproval(rowId, oid, checked) {
   const row = C.rowById(S, rowId); if (!row) return;
-  if (checked) { row.approvals[oid] = true; if (C.colFinal(S, row)) row.audit.needsReapproval = false; } else delete row.approvals[oid];
-  return checked ? write('Approve', () => sb.from('approvals').upsert({period_id: rowId, owner_id: oid}, {onConflict: 'period_id,owner_id'}), 'approvals')
+  if (checked) { row.approvals[oid] = me || oid; if (C.colFinal(S, row)) row.audit.needsReapproval = false; } else delete row.approvals[oid];
+  return checked ? write('Approve', () => sb.from('approvals').upsert({period_id: rowId, owner_id: oid, approved_by: me || oid}, {onConflict: 'period_id,owner_id'}), 'approvals')
                  : write('Withdraw approval', () => sb.from('approvals').delete().match({period_id: rowId, owner_id: oid}), 'approvals');
 }
 export function reopen(rowId) {

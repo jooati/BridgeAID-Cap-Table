@@ -70,3 +70,16 @@ test('Save JSON produces a file the importer accepts', () => {
   assert.ok(t.C.validateLegacy(JSON.parse(JSON.stringify(json))));
   assert.equal(json.rows.length, 12); assert.equal(json.catalog.groups[0].categories[0].subs.length, 8);
 });
+
+test('CSV and PDF say who approved: "Approved" for self, "Approved by <admin>" on behalf', () => {
+  const row = t.C.rowById(t.D.S, 'm202609'); row.approvals.kd = 'jal'; row.approvals.jal = 'jal';
+  const lines = t.report.buildFullCSV(t.D.S).split('\r\n');
+  assert.ok(lines.some(l => l.startsWith('September 2026,month,KD,') && l.endsWith(',Approved by JAL')));
+  assert.ok(lines.some(l => l.startsWith('September 2026,month,JAL,') && l.endsWith(',Approved')));
+  assert.ok(lines.some(l => l.startsWith('September 2026,month,HB,') && l.endsWith(',not approved')));
+  assert.ok(lines.some(l => l.endsWith(',Column status,Approval')));
+  const page = t.report.buildPrintDoc(t.D.S, '').querySelector('.pdf-page[data-page="m202609"]');
+  const st = [...page.querySelectorAll('.pcard .st')].map(x => t.text(x));
+  assert.deepEqual(st, ['✓ Approved', 'not approved', 'not approved', '✓ Approved by JAL', 'not approved', 'not approved', 'not approved']);
+  delete row.approvals.kd; delete row.approvals.jal;
+});
