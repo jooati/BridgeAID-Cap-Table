@@ -14,7 +14,8 @@ js/auth.js            sign in / out, forgot password, change password, current o
 js/ui-tracker.js      period × owner card matrix, two share bars
 js/ui-owners.js       salary-table matrix, roles, owners & baseline
 js/ui-tasks.js        task catalog & weights
-js/ui-report.js       work log & task report, CSV / PDF export
+js/ui-report.js       work log & task report, audit log, CSV / PDF export
+js/ui-diag.js         Connection diagnostics panel (click the status pill): one probe per table + RPCs
 js/app.js             boot, tabs (#hash deep links), toast
 tests/                jsdom tests (node), run with `npm test`
 scripts/seed-example.mjs   dev-only demo data (never exposed in the UI)

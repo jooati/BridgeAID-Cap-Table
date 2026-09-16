@@ -78,3 +78,21 @@ test('a signed-in account that is not linked to an owner sees everything read-on
   assert.equal(t.text(t.$('#trackerTable .appr')), 'Not yet approved');
   assert.equal(t.$('#trackerTools [data-act="addMonth"]').hidden, true);
 });
+
+test('header identity: owner name from owners.auth_uid, email only until an admin links the account', async () => {
+  const t = await setup({user: 'new@example.com'});
+  assert.equal(t.text(t.$('#loginLbl')), 'new@example.com'); assert.equal(t.$('#adminBadge').hidden, true);
+  assert.equal(t.$('#loginBtn').title, 'new@example.com');
+  /* an admin links the account (arrives through the owners realtime slice) */
+  t.sb.db.owners.find(o => o.id === 'kb').auth_uid = 'u-new'; t.D.onRealtime('owners'); await t.D.flushReload();
+  assert.equal(t.text(t.$('#loginLbl')), 'KB'); assert.equal(t.A.owner.id, 'kb'); assert.equal(t.$('#notice').hidden, true);
+  assert.equal(t.$('#loginBtn').title, 'KB · new@example.com');
+  assert.equal(t.$('#trackerTable .ocard[data-card="m202609:kb"]').classList.contains('ro'), false, 'own card became editable');
+  /* admin flag arrives the same way */
+  t.sb.db.owners.find(o => o.id === 'kb').is_admin = true; t.D.onRealtime('owners'); await t.D.flushReload();
+  assert.equal(t.$('#adminBadge').hidden, false); assert.equal(t.text(t.$('#loginLbl')), 'KB');
+  /* the account menu still opens with change password / sign out */
+  t.$('#loginBtn').click(); assert.equal(t.$('#accountMenu').hidden, false); assert.equal(t.text(t.$('#acctName')), 'KB');
+  assert.deepEqual(t.$$('#accountMenu [data-act]').map(b => b.dataset.act), ['changePassword', 'signOut']);
+  t.A.closeAccountMenu();
+});

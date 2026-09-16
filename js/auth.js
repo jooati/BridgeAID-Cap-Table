@@ -121,7 +121,8 @@ export function refreshButton() {
   const lbl = $('loginLbl'), badge = $('adminBadge'), btn = $('loginBtn'); if (!lbl) return;
   lbl.textContent = owner ? owner.name : (session ? (session.user.email || 'Signed in') : 'Sign in');
   badge.hidden = !isAdmin; btn.classList.toggle('signed', !!session);
-  btn.title = session ? 'Account' : 'Sign in';
+  const email = session ? (session.user.email || '') : '';
+  btn.title = !session ? 'Sign in' : (owner ? `${owner.name} · ${email}` : email);   // the name is the identity; the email lives in the tooltip
   if ($('acctName')) { $('acctName').textContent = owner ? owner.name : 'not linked to an owner'; $('acctEmail').textContent = session ? session.user.email || '' : ''; }
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !isAdmin);
 }
