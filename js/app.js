@@ -112,4 +112,5 @@ export async function boot(opts = {}) {
     onToast: toast,
     onError: e => { setPill('offline', 'Load failed'); toast('Could not load the data: ' + (e.message || e), 'err'); },
   });
+  if (!A.isSignedIn()) setPill('local', 'Signed out');
 }
