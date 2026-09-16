@@ -1,24 +1,22 @@
 {
   "name": "bridgeaid_cap_table",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "BridgeAID Monthly Ownership Tracker — static ES-module app on GitHub Pages, data + auth in Supabase",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "seed": "node scripts/seed-example.mjs",
+    "import": "node scripts/import-state.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jooati/BridgeAID-Cap-Table.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/jooati/BridgeAID-Cap-Table/issues"
-  },
-  "homepage": "https://github.com/jooati/BridgeAID-Cap-Table#readme",
+  "license": "UNLICENSED",
+  "homepage": "https://jooati.github.io/BridgeAID-Cap-Table/",
   "devDependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "jsdom": "^30.0.1"
   }
 }
