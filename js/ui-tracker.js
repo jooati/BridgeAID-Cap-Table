@@ -6,7 +6,7 @@
 import * as C from './calc.js';
 import * as D from './data.js';
 import * as A from './auth.js';
-import { toast, renderAll, requestRender } from './app.js';
+import { toast, renderAll, requestRender, moveFocus } from './app.js';
 
 const {esc, fmt, fmt1, money} = C;
 const COL_KEY = 'bridgeaid:tracker:collapsed';
@@ -110,6 +110,14 @@ export function acPick(rid, oid, tid) {
   D.addEntry(rid, oid, tid); renderAll();
 }
 
+/* Enter in an hours field: save now and jump to the next hours field of the card (blur after the last one) */
+function commitHoursAndAdvance(el) {
+  const card = el.closest('.ocard'); const inputs = card ? [...card.querySelectorAll('input[data-act="setHours"]')] : []; const i = inputs.indexOf(el);
+  D.flushPending();
+  if (i >= 0 && i < inputs.length - 1) { const next = inputs[i + 1]; moveFocus(() => next.focus()); if (next.select) next.select(); requestRender(); }
+  else el.blur();
+}
+
 /* ---------- actions ---------- */
 function guard(rid, oid) { const row = C.rowById(D.S, rid); if (!row) return false; if (C.colFinal(D.S, row)) { toast('This period is finalised — an admin must reopen it first.', 'err'); return false; } if (!A.canEditCard(oid)) { toast(A.isSignedIn() ? 'You can only edit your own card.' : 'Sign in to edit.', 'err'); return false; } return true; }
 export function setHours(rid, oid, i, v) { if (!guard(rid, oid)) return; D.setHours(rid, oid, i, v); requestRender(); }
@@ -151,6 +159,17 @@ export function initTracker() {
     else if (d.act === 'setSal') setSal(d.rid, d.oid, el.value);
     else if (d.act === 'setApproval') setApproval(d.rid, d.oid, el.checked);
   });
-  tbl.addEventListener('keydown', e => { const el = e.target; if (el.dataset && el.dataset.act === 'acInput') acKey(e, el, el.dataset.rid, el.dataset.oid); });
+  tbl.addEventListener('focusin', e => { const el = e.target; if (el.dataset && (el.dataset.act === 'setHours' || el.dataset.act === 'setSal')) el.dataset.prev = el.value; });
+  tbl.addEventListener('keydown', e => {
+    const el = e.target, d = el.dataset || {};
+    if (d.act === 'acInput') { acKey(e, el, d.rid, d.oid); return; }
+    if (d.act === 'setHours') {
+      if (e.key === 'Enter') { e.preventDefault(); commitHoursAndAdvance(el); }
+      else if (e.key === 'Escape') { e.preventDefault(); el.value = d.prev ?? el.value; setHours(d.rid, d.oid, +d.i, el.value); }
+    } else if (d.act === 'setSal') {
+      if (e.key === 'Enter') { e.preventDefault(); setSal(d.rid, d.oid, el.value); }
+      else if (e.key === 'Escape') { e.preventDefault(); el.value = d.prev ?? el.value; }
+    }
+  });
   tbl.addEventListener('focusout', e => { const el = e.target; if (el.dataset && el.dataset.act === 'acInput') setTimeout(() => acHide(el), 150); });
 }

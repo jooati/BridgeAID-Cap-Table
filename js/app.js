@@ -29,10 +29,13 @@ let deferred = false;
 export function requestRender() {
   const a = document.activeElement;
   const typing = a && a.closest && a.closest('main') && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== 'checkbox' && !a.disabled;
-  if (typing) { if (!deferred) { deferred = true; a.addEventListener('blur', () => { deferred = false; renderAll(); }, {once: true}); } return; }
+  if (typing) { if (!deferred) { deferred = true; a.addEventListener('blur', () => { deferred = false; if (!suppress) renderAll(); }, {once: true}); } return; }
   renderAll();
 }
 export function isRenderDeferred() { return deferred; }
+/* move focus from one field to another without the blur of the first one re-rendering (Enter → next field) */
+let suppress = false;
+export function moveFocus(fn) { suppress = true; try { fn(); } finally { suppress = false; } }
 function clearUi() { ['trackerTable', 'bars', 'taskSection', 'salaryTables', 'ownerList', 'reportBody'].forEach(id => { const el = $(id); if (el) el.innerHTML = ''; }); }
 
 /* ---------- tabs ---------- */

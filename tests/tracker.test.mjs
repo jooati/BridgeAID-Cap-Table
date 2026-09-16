@@ -139,6 +139,35 @@ test('role and salary edits are upserted; the paid-hours line follows the table 
   assert.equal(card(rid, 'jal').querySelector('.pay input').value, '€3,750.00');
 });
 
+test('Enter saves the hours and moves to the next hours field (blur after the last); Escape restores the previous value', async () => {
+  const rid = 'm202608', inputs = () => [...card(rid, 'jal').querySelectorAll('input[data-act="setHours"]')];
+  assert.equal(inputs().length, 2);
+  const first = inputs()[0], second = inputs()[1];
+  first.focus(); t.setValue(first, '33'); t.fire(first, 'keydown', {key: 'Enter'}); await sleep(20);
+  assert.equal(t.sb.db.entries.find(e => e.period_id === rid && e.owner_id === 'jal').hours, 33, 'saved on Enter without waiting for the debounce');
+  assert.equal(t.document.activeElement, second, 'focus moved to the next hours field of the card');
+  assert.ok(second.isConnected, 'the card was not re-rendered under the moving focus');
+  t.setValue(second, '44'); t.fire(second, 'keydown', {key: 'Enter'}); await sleep(20);
+  assert.notEqual(t.document.activeElement, second, 'last field → blurred');
+  assert.equal(t.sb.db.entries.filter(e => e.period_id === rid && e.owner_id === 'jal')[1].hours, 44);
+  assert.equal(inputs()[1].value, '44'); assert.equal(inputs()[0].value, '33', 're-rendered after the blur');
+  /* Escape */
+  const inp = inputs()[0]; inp.focus(); t.setValue(inp, '99');
+  assert.equal(t.C.rowById(t.D.S, rid).cells.jal.entries[0].hours, 99);
+  t.fire(inp, 'keydown', {key: 'Escape'}); await t.flush();
+  assert.equal(inp.value, '33'); assert.equal(t.C.rowById(t.D.S, rid).cells.jal.entries[0].hours, 33);
+  assert.equal(t.sb.db.entries.find(e => e.period_id === rid && e.owner_id === 'jal').hours, 33);
+  inp.blur();
+  /* salary EUR field: Enter commits, Escape restores */
+  const sal = card(rid, 'jal').querySelector('.pay input'); sal.focus(); t.setValue(sal, '2,000'); t.fire(sal, 'keydown', {key: 'Enter'}); await t.flush();
+  assert.equal(t.sb.db.salaries.find(s => s.period_id === rid && s.owner_id === 'jal').gross_eur, 2000);
+  const sal2 = card(rid, 'jal').querySelector('.pay input'); assert.equal(sal2.value, '€2,000.00');
+  sal2.focus(); sal2.value = '5'; t.fire(sal2, 'keydown', {key: 'Escape'}); assert.equal(sal2.value, '€2,000.00');
+  const writes = t.sb.writes.length; t.fire(sal2, 'change'); await t.flush();
+  assert.equal(t.sb.writes.length, writes, 'an unchanged salary is not written again');
+  sal2.blur();
+});
+
 test('a Realtime reload never overwrites the input being typed in; it renders after blur', async () => {
   const rid = 'm202609'; const inp = card(rid, 'jal').querySelector('table.mini input');
   inp.focus(); assert.equal(t.document.activeElement, inp);

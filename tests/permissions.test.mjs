@@ -98,6 +98,14 @@ test('admin: master data edits go to the database (tasks, roles, salary tables, 
   assert.equal(t.sb.db.salary_tables.find(x => x.id === tid).fx_huf_eur, 410);
   const huf = t.$(`#salaryTables input[data-act="setTableHuf"][data-tid="${tid}"][data-rid="ceo"]`); t.setValue(huf, '3300000', 'change'); await t.flush();
   assert.equal(t.sb.db.salary_rates.find(r => r.table_id === tid && r.role_id === 'ceo').gross_huf, 3300000);
+  /* Enter commits a HUF field, Escape restores it */
+  const huf2 = t.$(`#salaryTables input[data-act="setTableHuf"][data-tid="${tid}"][data-rid="coo"]`); huf2.focus(); huf2.value = '2900000'; t.fire(huf2, 'keydown', {key: 'Enter'}); await t.flush();
+  assert.equal(t.sb.db.salary_rates.find(r => r.table_id === tid && r.role_id === 'coo').gross_huf, 2900000);
+  const huf3 = t.$(`#salaryTables input[data-act="setTableHuf"][data-tid="${tid}"][data-rid="coo"]`); huf3.focus(); huf3.value = '1'; t.fire(huf3, 'keydown', {key: 'Escape'});
+  assert.equal(huf3.value, '2900000'); const w0 = t.sb.writes.length; t.fire(huf3, 'change'); await t.flush(); assert.equal(t.sb.writes.length, w0, 'no write for an unchanged rate');
+  const fx2 = t.$(`#salaryTables input[data-act="setTableFx"][data-tid="${tid}"]`); fx2.focus(); fx2.value = '405'; t.fire(fx2, 'keydown', {key: 'Enter'}); await t.flush();
+  assert.equal(t.sb.db.salary_tables.find(x => x.id === tid).fx_huf_eur, 405);
+  t.setValue(t.$(`#salaryTables input[data-act="setTableFx"][data-tid="${tid}"]`), '410', 'change'); await t.flush();
   assert.equal(t.C.tableFor(t.D.S, '2026-02').from, '2025-12'); assert.equal(t.C.tableFor(t.D.S, '2026-03').fx, 410);
   assert.equal(t.$$('#salaryTables thead th[data-col]')[0].dataset.col, '2026-03', 'newest table first');
   /* roles */

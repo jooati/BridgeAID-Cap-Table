@@ -180,7 +180,10 @@ export function delEntry(rowId, oid, idx) {
 /* ----- cards: salary ----- */
 export function setSalary(rowId, oid, patch) {
   const row = C.rowById(S, rowId); if (!canWriteCard(row)) return; const c = ensureCell(row, oid);
-  if ('role' in patch) c.role = patch.role || null; if ('salary' in patch) c.salary = patch.salary == null || isNaN(patch.salary) ? null : Math.max(0, +patch.salary);
+  const role = 'role' in patch ? (patch.role || null) : c.role;
+  const salary = 'salary' in patch ? (patch.salary == null || isNaN(patch.salary) ? null : Math.max(0, +patch.salary)) : c.salary;
+  if (role === c.role && salary === c.salary) return;                      // nothing changed (e.g. Enter then blur)
+  c.role = role; c.salary = salary;
   touch(row);
   return write('Save salary', () => sb.from('salaries').upsert({period_id: rowId, owner_id: oid, role_id: c.role, gross_eur: c.salary}, {onConflict: 'period_id,owner_id'}), 'salaries');
 }
@@ -277,10 +280,11 @@ export function delSalaryTable(tid) {
 export function updateSalaryTable(tid, patch) {
   const tb = tableById(tid); if (!tb) return; const upd = {};
   if ('from' in patch) { if (S.salaryTables.some(x => x !== tb && x.from === patch.from)) return {error: 'There is already a table starting that month.'}; tb.from = patch.from; upd.effective_from = patch.from + '-01'; }
-  if ('fx' in patch) { const n = parseFloat(patch.fx); if (isNaN(n) || n <= 0) return; tb.fx = n; upd.fx_huf_eur = n; }
+  if ('fx' in patch) { const n = parseFloat(patch.fx); if (isNaN(n) || n <= 0 || n === tb.fx) return; tb.fx = n; upd.fx_huf_eur = n; }
+  if (!Object.keys(upd).length) return;
   return write('Update salary table', async () => { await tb._ready; return sb.from('salary_tables').update(upd).eq('id', tb.id).select(); }, 'salary', true);
 }
 export function setRate(tid, rid, huf) {
-  const tb = tableById(tid); if (!tb) return; const v = Math.max(0, parseFloat(huf) || 0); tb.huf[rid] = v;
+  const tb = tableById(tid); if (!tb) return; const v = Math.max(0, parseFloat(huf) || 0); if (v === (+tb.huf[rid] || 0)) return; tb.huf[rid] = v;
   return write('Save rate', async () => { await tb._ready; return sb.from('salary_rates').upsert({table_id: tb.id, role_id: rid, gross_huf: v}, {onConflict: 'table_id,role_id'}); }, 'salary');
 }

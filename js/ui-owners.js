@@ -111,6 +111,12 @@ export function initOwners() {
       case 'removeOwner': removeOwner(d.oid); break;
     }
   });
+  body.addEventListener('focusin', e => { const el = e.target; if (el.dataset && (el.dataset.act === 'setTableHuf' || el.dataset.act === 'setTableFx')) el.dataset.prev = el.value; });
+  body.addEventListener('keydown', e => {
+    const el = e.target, d = el.dataset || {}; if (d.act !== 'setTableHuf' && d.act !== 'setTableFx') return;
+    if (e.key === 'Enter') { e.preventDefault(); d.act === 'setTableHuf' ? setTableHuf(d.tid, d.rid, el.value) : setTableFx(d.tid, el.value); }
+    else if (e.key === 'Escape') { e.preventDefault(); el.value = d.prev ?? el.value; }
+  });
   body.addEventListener('input', e => {
     const el = e.target, d = el.dataset; if (!d.act) return;
     if (d.act === 'roleName' && A.canMaster()) D.updateRole(d.rid, el.value);
