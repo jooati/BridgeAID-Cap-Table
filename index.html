@@ -95,8 +95,18 @@
         <label class="rp-filter">Period <select id="rpPeriod"></select></label>
         <label class="rp-filter">Owner <select id="rpOwner"></select></label>
         <button class="btn-quiet btn-small" data-act="exportWorklogCsv">Export work log CSV</button>
+        <button class="btn-quiet btn-small" data-act="exportAuditCsv">Export audit CSV</button>
       </div>
       <div id="reportBody"></div>
+      <h3 class="sub">Audit log</h3>
+      <p class="note" style="margin:0 0 8px">Every change to the shared data, newest first — who changed what, and when.</p>
+      <div class="rp-tools" id="auTools">
+        <label class="rp-filter">Period <select id="auPeriod"></select></label>
+        <label class="rp-filter">Owner <select id="auOwner"></select></label>
+        <label class="rp-filter">Table <select id="auTable"></select></label>
+        <span class="lg" id="auCount"></span>
+      </div>
+      <div id="auditBody" class="audit"></div>
     </div>
   </section>
   <section class="card tab-panel" id="tab-owners" hidden>

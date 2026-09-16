@@ -18,6 +18,7 @@ test('loadAll builds the legacy state shape from the tables', () => {
   assert.equal(dec.cells.hb.role, 'ceo'); assert.equal(dec.cells.hb.salary, 2500); assert.equal(dec.cells.kd.salary, null);
   assert.equal(Object.keys(dec.approvals).length, 7); assert.equal(dec.audit.needsReapproval, false);
   assert.equal(Object.keys(t.C.rowById(S, 'm202609').approvals).length, 0);
+  assert.deepEqual(S.audit, [], 'audit slice loaded (empty fixture)');
 });
 
 test('targeted writes: entries, salaries, approvals, periods', async () => {

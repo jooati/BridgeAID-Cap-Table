@@ -218,3 +218,8 @@ body.locked main{display:none;}
 /* finalised column: green check next to the period label (header and collapsed strip) */
 .fin-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;}
 th.col-collapsed .colhead .vlbl .fin-badge{width:16px;height:16px;font-size:11px;transform:rotate(180deg);}
+/* audit log */
+.audit table.rp td{font-size:12px;} .audit td.when{white-space:nowrap;color:var(--slate);font-variant-numeric:tabular-nums;} .audit td.who{white-space:nowrap;font-weight:600;}
+.audit .act{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:10px;background:#EEF1F5;color:var(--slate);}
+.audit .act.insert{background:var(--ok-bg);color:var(--ok);} .audit .act.delete{background:var(--danger-bg);color:var(--danger);} .audit .act.update{background:var(--warn-bg);color:#7A5B00;}
+.audit details summary{cursor:pointer;color:var(--slate-light);font-size:11px;} .audit pre{margin:4px 0 0;font-size:10.5px;background:#F7F8FA;border:1px solid var(--line);border-radius:6px;padding:6px 8px;max-width:560px;white-space:pre-wrap;word-break:break-all;}

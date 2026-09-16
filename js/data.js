@@ -39,6 +39,9 @@ async function rows(table, order) {
 const genLast = (a, b) => ((a.includes('_x') ? 1 : 0) - (b.includes('_x') ? 1 : 0)) || a.localeCompare(b, 'en', {numeric: true});
 const mapOwner = o => ({id: o.id, name: o.name, baseline: +o.baseline_pct || 0, last: !!o.sort_last, isAdmin: !!o.is_admin, authUid: o.auth_uid || null});
 const mapRole = r => ({id: r.id, name: r.name});
+const mapAudit = a => ({id: a.id, at: a.at, actor: a.actor || null, action: a.action, table: a.table_name, key: a.row_key, periodId: a.period_id || null, ownerId: a.owner_id || null, old: a.old || null, new: a.new || null});
+const AUDIT_LIMIT = 2000;
+async function auditRows() { const {data, error} = await sb.from('audit_log').select('*').order('id', {ascending: false}).limit(AUDIT_LIMIT); if (error) throw error; return (data || []).map(mapAudit).sort((a, b) => b.id - a.id); }
 const ROLE_ORDER = ['ceo', 'coo', 'cso', 'civ', 'it'];   // default roles keep the legacy order; new roles follow A–Z
 const rank = id => { const i = ROLE_ORDER.indexOf(id); return i < 0 ? ROLE_ORDER.length : i; };
 const roleSort = (a, b) => (rank(a.id) - rank(b.id)) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'});
@@ -73,11 +76,11 @@ function applyApprovals(approvals) {
 }
 
 export async function loadAll() {
-  const [owners, roles, tables, rates, groups, cats, tasks, periods, entries, salaries, approvals] = await Promise.all([
+  const [owners, roles, tables, rates, groups, cats, tasks, periods, entries, salaries, approvals, audit] = await Promise.all([
     rows('owners'), rows('roles'), rows('salary_tables', 'effective_from'), rows('salary_rates'), rows('task_groups'), rows('task_categories'), rows('tasks'),
-    rows('periods'), rows('entries', 'id'), rows('salaries'), rows('approvals')]);
+    rows('periods'), rows('entries', 'id'), rows('salaries'), rows('approvals'), auditRows()]);
   S = {schema: C.SCHEMA_NAME, version: C.SCHEMA_VERSION, owners: owners.map(mapOwner), roles: roles.map(mapRole).sort(roleSort),
-    salaryTables: mapTables(tables, rates), catalog: mapCatalog(groups, cats, tasks), rows: periods.map(p => mapPeriod(p)), meta: {updatedAt: null, updatedBy: null}};
+    salaryTables: mapTables(tables, rates), catalog: mapCatalog(groups, cats, tasks), rows: periods.map(p => mapPeriod(p)), audit, meta: {updatedAt: null, updatedBy: null}};
   applyEntries(entries); applySalaries(salaries); applyApprovals(approvals);
   return S;
 }
@@ -92,9 +95,10 @@ const reloaders = {
   entries: async () => applyEntries(await rows('entries', 'id')),
   salaries: async () => applySalaries(await rows('salaries')),
   approvals: async () => applyApprovals(await rows('approvals')),
+  audit: async () => { S.audit = await auditRows(); },
 };
-const SLICE_OF = {owners: 'owners', roles: 'roles', salary_tables: 'salary', salary_rates: 'salary', tasks: 'catalog', task_categories: 'catalog', task_groups: 'catalog', periods: 'periods', entries: 'entries', salaries: 'salaries', approvals: 'approvals'};
-export const REALTIME_TABLES = ['periods', 'entries', 'salaries', 'approvals', 'owners', 'salary_tables', 'salary_rates', 'tasks'];
+const SLICE_OF = {owners: 'owners', roles: 'roles', salary_tables: 'salary', salary_rates: 'salary', tasks: 'catalog', task_categories: 'catalog', task_groups: 'catalog', periods: 'periods', entries: 'entries', salaries: 'salaries', approvals: 'approvals', audit_log: 'audit'};
+export const REALTIME_TABLES = ['periods', 'entries', 'salaries', 'approvals', 'owners', 'salary_tables', 'salary_rates', 'tasks', 'audit_log'];
 
 const dirty = new Set(); let reloadTimer = null, reloading = null;
 function scheduleReload(slice) { if (slice) dirty.add(slice); if (reloadTimer) clearTimeout(reloadTimer); reloadTimer = setTimeout(runReload, 150); }

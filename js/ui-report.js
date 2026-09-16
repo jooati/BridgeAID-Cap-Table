@@ -46,6 +46,7 @@ export function renderReport() {
     html += `</tbody><tfoot><tr><td>Total</td>${owners.map(o => `<td class="r"><b>${money(tot[o.id].sal)}</b><div class="muted small">${fmt1(tot[o.id].paidH)} of ${fmt1(tot[o.id].H)} h paid</div></td>`).join('')}<td class="r"><b>${money(grand)}</b></td></tr></tfoot></table>`;
     host.innerHTML = html;
   }
+  renderAudit();
 }
 
 /* ---------- CSV ---------- */
@@ -123,6 +124,115 @@ export async function exportPDF() {
 
 export function initReport() {
   const tools = document.getElementById('rpTools'); if (!tools) return;
-  tools.addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (!b) return; if (b.dataset.act === 'setReportView') setReportView(b.dataset.view); else if (b.dataset.act === 'exportWorklogCsv') exportWorklogCSV(); });
+  tools.addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (!b) return; if (b.dataset.act === 'setReportView') setReportView(b.dataset.view); else if (b.dataset.act === 'exportWorklogCsv') exportWorklogCSV(); else if (b.dataset.act === 'exportAuditCsv') exportAuditCSV(); });
   tools.addEventListener('change', e => { if (e.target.id === 'rpPeriod' || e.target.id === 'rpOwner') renderReport(); });
+  const au = document.getElementById('auTools'); if (au) au.addEventListener('change', e => { if (/^au(Period|Owner|Table)$/.test(e.target.id)) renderAudit(); });
 }
+
+/* ---------- audit log ---------- */
+const AUDIT_TABLES = {entries: 'Entries', salaries: 'Salaries', approvals: 'Approvals', periods: 'Periods', owners: 'Owners', roles: 'Roles', salary_tables: 'Salary tables', salary_rates: 'Salary rates', tasks: 'Tasks', task_categories: 'Task categories', task_groups: 'Task groups'};
+const short = (s, n = 40) => { s = String(s ?? ''); return s.length > n ? s.slice(0, n) + '…' : s; };
+const fmtAt = iso => iso ? new Date(iso).toLocaleString('en-GB', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '';
+/* one human-readable line per audit row, built from the old/new diff */
+export function describeAudit(S, a) {
+  const o = a.old || {}, n = a.new || {}, r = a.new || a.old || {};
+  const who = a.actor ? C.ownerName(S, a.actor) : 'system';
+  const per = id => { const row = id && C.rowById(S, id); return row ? row.label : (id || 'a period'); };
+  const own = id => id ? C.ownerName(S, id) : '';
+  const tname = row => row.task_name || (C.taskById(S, row.task_id) || {}).name || row.task_id || 'task';
+  const tb = id => { const t = S.salaryTables.find(x => String(x.id) === String(id)); return t ? `the table from ${t.from}` : `table #${id}`; };
+  const rn = id => C.roleName(S, id) || id || '—';
+  const huf = v => (+v || 0).toLocaleString('en-US');
+  const eur = v => v == null ? '—' : money(+v);
+  const from = v => String(v || '').slice(0, 7);
+  switch (a.table) {
+    case 'entries': {
+      const p = per(r.period_id), o1 = own(r.owner_id), t = `'${short(tname(r))}'`;
+      if (a.action === 'insert') return `${o1}: logged ${t} in ${p}`;
+      if (a.action === 'delete') return `${o1}: removed ${t} (${fmt1(+o.hours || 0)} h) from ${p}`;
+      if (+o.hours !== +n.hours) return `${o1}: hours ${fmt1(+o.hours || 0)} → ${fmt1(+n.hours || 0)} on ${t} in ${p}`;
+      return `${o1}: changed ${t} in ${p}`;
+    }
+    case 'salaries': {
+      const p = per(r.period_id), o1 = own(r.owner_id);
+      if (a.action === 'delete') return `${o1}: salary removed from ${p}`;
+      const parts = [];
+      if (a.action === 'insert') { parts.push(`role ${rn(n.role_id)}`); parts.push(`salary ${eur(n.gross_eur)}`); }
+      else { if ((o.role_id || null) !== (n.role_id || null)) parts.push(`role ${rn(o.role_id)} → ${rn(n.role_id)}`); if (eur(o.gross_eur) !== eur(n.gross_eur)) parts.push(`salary ${eur(o.gross_eur)} → ${eur(n.gross_eur)}`); }
+      return `${o1}: ${parts.join(', ') || 'salary changed'} in ${p}`;
+    }
+    case 'approvals': {
+      const p = per(r.period_id), o1 = own(r.owner_id);
+      if (a.action === 'insert') return r.approved_by && r.approved_by !== r.owner_id ? `${own(r.approved_by)} approved on behalf of ${o1} — ${p}` : `${o1} approved ${p}`;
+      if (a.action === 'delete') return `${o1}'s approval of ${p} withdrawn`;
+      return `${o1}'s approval of ${p} changed`;
+    }
+    case 'periods':
+      if (a.action === 'insert') return `${who} added ${n.label}`;
+      if (a.action === 'delete') return `${who} removed ${o.label}`;
+      return `${who} changed ${o.label}${o.label !== n.label ? ` → ${n.label}` : ''}`;
+    case 'owners': {
+      if (a.action === 'insert') return `${who} added owner ${n.name}`;
+      if (a.action === 'delete') return `${who} removed owner ${o.name}`;
+      const parts = [];
+      if (o.name !== n.name) parts.push(`name ${o.name} → ${n.name}`);
+      if (+o.baseline_pct !== +n.baseline_pct) parts.push(`baseline ${fmt(+o.baseline_pct)} → ${fmt(+n.baseline_pct)}%`);
+      if ((o.auth_uid || null) !== (n.auth_uid || null)) parts.push(n.auth_uid ? 'linked to a sign-in account' : 'unlinked from the sign-in account');
+      if (!!o.is_admin !== !!n.is_admin) parts.push(n.is_admin ? 'made admin' : 'admin rights removed');
+      return `${who}: ${n.name} ${parts.join(', ') || 'changed'}`;
+    }
+    case 'roles': return a.action === 'insert' ? `${who} added role ${n.name}` : a.action === 'delete' ? `${who} removed role ${o.name}` : `${who} renamed role ${o.name} → ${n.name}`;
+    case 'salary_tables': {
+      if (a.action === 'insert') return `${who} added a salary table from ${from(n.effective_from)} (HUF→EUR ${fmt(+n.fx_huf_eur)})`;
+      if (a.action === 'delete') return `${who} removed the salary table from ${from(o.effective_from)}`;
+      const parts = [];
+      if (from(o.effective_from) !== from(n.effective_from)) parts.push(`effective from ${from(o.effective_from)} → ${from(n.effective_from)}`);
+      if (+o.fx_huf_eur !== +n.fx_huf_eur) parts.push(`HUF→EUR ${fmt(+o.fx_huf_eur)} → ${fmt(+n.fx_huf_eur)}`);
+      return `${who} changed ${parts.join(', ') || 'the salary table'} in the table from ${from(n.effective_from)}`;
+    }
+    case 'salary_rates': {
+      const role = rn(r.role_id);
+      if (a.action === 'delete') return `${who} removed the ${role} base salary from ${tb(o.table_id)}`;
+      if (a.action === 'insert') return `${who} set ${role} base salary ${huf(n.gross_huf)} HUF in ${tb(n.table_id)}`;
+      return `${who} changed ${role} base salary ${huf(o.gross_huf)} → ${huf(n.gross_huf)} HUF in ${tb(n.table_id)}`;
+    }
+    case 'tasks': {
+      if (a.action === 'insert') return `${who} added task '${short(n.name)}' (weight ${fmt1(+n.weight || 0)})`;
+      if (a.action === 'delete') return `${who} removed task '${short(o.name)}'`;
+      const parts = []; if (o.name !== n.name) parts.push(`renamed '${short(o.name)}' → '${short(n.name)}'`); if (+o.weight !== +n.weight) parts.push(`'${short(n.name)}' weight ${fmt1(+o.weight || 0)} → ${fmt1(+n.weight || 0)}`);
+      return `${who}: ${parts.join(', ') || 'changed a task'}`;
+    }
+    case 'task_categories': case 'task_groups': {
+      const kind = a.table === 'task_groups' ? 'group' : 'category';
+      if (a.action === 'insert') return `${who} added ${kind} '${short(n.name)}'`;
+      if (a.action === 'delete') return `${who} removed ${kind} '${short(o.name)}'`;
+      return `${who} renamed ${kind} '${short(o.name)}' → '${short(n.name)}'`;
+    }
+    default: return `${who}: ${a.action} ${a.table} ${a.key || ''}`.trim();
+  }
+}
+function auditFilters() { const g = id => document.getElementById(id); return {period: g('auPeriod') ? g('auPeriod').value : 'all', owner: g('auOwner') ? g('auOwner').value : 'all', table: g('auTable') ? g('auTable').value : 'all'}; }
+export function filteredAudit(S, f) {
+  return (S.audit || []).filter(a => (f.period === 'all' || a.periodId === f.period) && (f.owner === 'all' || a.ownerId === f.owner || a.actor === f.owner) && (f.table === 'all' || a.table === f.table));
+}
+export function renderAudit() {
+  const S = D.S, host = document.getElementById('auditBody'); if (!S || !host) return;
+  const keep = (sel, html) => { const v = sel.value || 'all'; sel.innerHTML = html; sel.value = [...sel.options].some(x => x.value === v) ? v : 'all'; };
+  const pSel = document.getElementById('auPeriod'), oSel = document.getElementById('auOwner'), tSel = document.getElementById('auTable');
+  keep(pSel, '<option value="all">All periods</option>' + C.displayRows(S).map(r => `<option value="${esc(r.id)}">${esc(r.label)}</option>`).join(''));
+  keep(oSel, '<option value="all">All owners</option>' + C.sortedOwners(S).map(o => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join(''));
+  const present = new Set((S.audit || []).map(a => a.table));
+  keep(tSel, '<option value="all">All tables</option>' + Object.keys(AUDIT_TABLES).filter(t => present.has(t)).map(t => `<option value="${t}">${AUDIT_TABLES[t]}</option>`).join(''));
+  const list = filteredAudit(S, auditFilters());
+  const cnt = document.getElementById('auCount'); if (cnt) cnt.textContent = `${list.length} of ${(S.audit || []).length} changes`;
+  if (!list.length) { host.innerHTML = '<div class="muted">No changes recorded for this selection.</div>'; return; }
+  host.innerHTML = `<table class="rp"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>What</th><th></th></tr></thead><tbody>` + list.map(a =>
+    `<tr data-audit="${a.id}"><td class="when">${esc(fmtAt(a.at))}</td><td class="who">${esc(a.actor ? C.ownerName(S, a.actor) : 'system')}</td><td><span class="act ${esc(a.action)}">${a.action === 'insert' ? 'added' : a.action === 'delete' ? 'removed' : 'changed'}</span> <span class="muted small">${esc(AUDIT_TABLES[a.table] || a.table)}</span></td><td class="what">${esc(describeAudit(S, a))}</td>
+      <td><details><summary>raw</summary><pre>old: ${esc(a.old ? JSON.stringify(a.old, null, 1) : '—')}\nnew: ${esc(a.new ? JSON.stringify(a.new, null, 1) : '—')}</pre></details></td></tr>`).join('') + '</tbody></table>';
+}
+export function auditCSV(S, list) {
+  const rows = [['When', 'Who', 'Action', 'Table', 'Key', 'Period', 'Owner', 'What', 'Old', 'New']];
+  (list || S.audit || []).forEach(a => rows.push([a.at, a.actor ? C.ownerName(S, a.actor) : 'system', a.action, a.table, a.key || '', a.periodId ? (C.rowById(S, a.periodId) || {}).label || a.periodId : '', a.ownerId ? C.ownerName(S, a.ownerId) : '', describeAudit(S, a), a.old ? JSON.stringify(a.old) : '', a.new ? JSON.stringify(a.new) : '']));
+  return csvOf(rows);
+}
+export function exportAuditCSV() { if (!D.S) return; dl(new Blob([auditCSV(D.S, filteredAudit(D.S, auditFilters()))], {type: 'text/csv;charset=utf-8;'}), 'BridgeAID_audit_log.csv'); }

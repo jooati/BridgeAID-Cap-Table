@@ -8,9 +8,10 @@
 
 export const PK = {
   owners: ['id'], roles: ['id'], salary_tables: ['id'], salary_rates: ['table_id', 'role_id'], task_groups: ['id'], task_categories: ['id'], tasks: ['id'],
-  periods: ['id'], entries: ['id'], salaries: ['period_id', 'owner_id'], approvals: ['period_id', 'owner_id'],
+  periods: ['id'], entries: ['id'], salaries: ['period_id', 'owner_id'], approvals: ['period_id', 'owner_id'], audit_log: ['id'],
 };
-const SERIAL = {salary_tables: 'id', entries: 'id'};
+const SERIAL = {salary_tables: 'id', entries: 'id', audit_log: 'id'};
+const AUDITED = ['entries', 'salaries', 'approvals', 'periods', 'owners', 'roles', 'salary_tables', 'salary_rates', 'tasks', 'task_categories', 'task_groups'];
 const MASTER = ['owners', 'roles', 'salary_tables', 'salary_rates', 'task_groups', 'task_categories', 'tasks', 'periods'];
 const clone = x => JSON.parse(JSON.stringify(x));
 const same = (a, b) => String(a) === String(b);
@@ -50,8 +51,18 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
   const periodFinal = pid => db.approvals.filter(a => a.period_id === pid).length === db.owners.length && db.owners.length > 0;
 
   /* ---- triggers ---- */
+  /* audit_row(): one audit_log row per row change; flag-only period updates and no-op updates are skipped */
+  function logAudit(op, t, o, n) {
+    if (!AUDITED.includes(t)) return;
+    if (op === 'update') { const strip = x => { const c = {...x}; if (t === 'periods') { delete c.needs_reapproval; delete c.edited_by; delete c.edited_at; } return JSON.stringify(c); }; if (strip(o) === strip(n)) return; }
+    const r = n || o; const key = t === 'salary_rates' ? `${r.table_id}:${r.role_id}` : (t === 'salaries' || t === 'approvals') ? `${r.period_id}:${r.owner_id}` : String(r.id);
+    const me = myOwner();
+    db.audit_log.push({id: ++seq.audit_log, at: new Date().toISOString(), actor: me ? me.id : null, action: op, table_name: t, row_key: key,
+      period_id: t === 'periods' ? r.id : (r.period_id ?? null), owner_id: t === 'owners' ? r.id : (r.owner_id ?? null), old: o ? clone(o) : null, new: n ? clone(n) : null});
+  }
   function afterCardChange(pid) {
     const had = db.approvals.some(a => a.period_id === pid);
+    db.approvals.filter(a => a.period_id === pid).forEach(a => logAudit('delete', 'approvals', a, null));
     db.approvals = db.approvals.filter(a => a.period_id !== pid);
     const p = db.periods.find(x => x.id === pid); const me = myOwner();
     if (p) { if (had) p.needs_reapproval = true; p.edited_by = me ? me.id : null; p.edited_at = new Date().toISOString(); }
@@ -60,6 +71,7 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
 
   /* ---- RLS (light): returns an error message or null ---- */
   function rlsCheck(table, op, row) {
+    if (table === 'audit_log') return 'permission denied for table audit_log';   // only the triggers write
     if (service) return null;                                   // service-role key bypasses RLS
     if (!uid()) return 'not authenticated';
     if (MASTER.includes(table)) return isAdmin() ? null : 'new row violates row-level security policy for table "' + table + '"';
@@ -96,28 +108,29 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
           if (SERIAL[t] && row[SERIAL[t]] == null) row[SERIAL[t]] = ++seq[t];
           const err = rlsCheck(t, 'insert', row); if (err) return {data: null, error: {message: err}};
           const existing = rows.find(r => this._pk(r) === this._pk(row));
-          if (existing) { if (this.op === 'insert') return {data: null, error: {message: 'duplicate key value violates unique constraint', code: '23505'}}; Object.assign(existing, row); out.push(existing); }
+          if (existing) { if (this.op === 'insert') return {data: null, error: {message: 'duplicate key value violates unique constraint', code: '23505'}}; const before = clone(existing); Object.assign(existing, row); out.push(existing); logAudit('update', t, before, existing); }
           else { if (t === 'salary_tables' && rows.some(r => r.effective_from === row.effective_from && r.id !== row.id)) { const ex = rows.find(r => r.effective_from === row.effective_from); if (this.op === 'upsert') { Object.assign(ex, row, {id: ex.id}); out.push(ex); continue; } return {data: null, error: {message: 'duplicate key value violates unique constraint "salary_tables_effective_from_key"'}}; }
             if (t === 'entries') { if (row.hours == null) row.hours = 0; if (row.created_at == null) row.created_at = new Date().toISOString(); }
             if (t === 'periods' && row.needs_reapproval == null) row.needs_reapproval = false;
             if (t === 'approvals') { if (row.approved_by == null) row.approved_by = (myOwner() && myOwner().id) || row.owner_id; if (row.approved_at == null) row.approved_at = new Date().toISOString(); }
-            rows.push(row); out.push(row); }
+            rows.push(row); out.push(row); logAudit('insert', t, null, row); }
           if (t === 'entries' || t === 'salaries') afterCardChange(row.period_id); if (t === 'approvals') afterApproval(row.period_id);
         }
         writes.push({table: t, op: this.op, rows: clone(out)}); if (rt.auto) setTimeout(() => rt.emit(t, {eventType: 'INSERT'}), 0);
         return fin(out);
       }
       if (this.op === 'update') {
-        const ms = matches().filter(r => !rlsCheck(t, 'update', r)); ms.forEach(r => Object.assign(r, this.payload));
+        const ms = matches().filter(r => !rlsCheck(t, 'update', r)); ms.forEach(r => { const before = clone(r); Object.assign(r, this.payload); logAudit('update', t, before, r); });
         ms.forEach(r => { if (t === 'entries' || t === 'salaries') afterCardChange(r.period_id); });
         writes.push({table: t, op: 'update', rows: clone(ms), patch: clone(this.payload)}); if (rt.auto && ms.length) setTimeout(() => rt.emit(t, {eventType: 'UPDATE'}), 0);
         return fin(ms);
       }
       if (this.op === 'delete') {
-        const ms = matches().filter(r => !rlsCheck(t, 'delete', r)); db[t] = rows.filter(r => !ms.includes(r));
-        /* cascades */
-        if (t === 'periods') ms.forEach(p => ['entries', 'salaries', 'approvals'].forEach(x => db[x] = db[x].filter(r => r.period_id !== p.id)));
-        if (t === 'owners') ms.forEach(o => ['entries', 'salaries', 'approvals'].forEach(x => db[x] = db[x].filter(r => r.owner_id !== o.id)));
+        const ms = matches().filter(r => !rlsCheck(t, 'delete', r)); db[t] = rows.filter(r => !ms.includes(r)); ms.forEach(r => logAudit('delete', t, r, null));
+        /* cascades (row triggers fire on the children too) */
+        const cascade = (x, pred) => { db[x].filter(pred).forEach(r => logAudit('delete', x, r, null)); db[x] = db[x].filter(r => !pred(r)); };
+        if (t === 'periods') ms.forEach(p => ['entries', 'salaries', 'approvals'].forEach(x => cascade(x, r => r.period_id === p.id)));
+        if (t === 'owners') ms.forEach(o => ['entries', 'salaries', 'approvals'].forEach(x => cascade(x, r => r.owner_id === o.id)));
         if (t === 'roles') ms.forEach(o => { db.salary_rates = db.salary_rates.filter(r => r.role_id !== o.id); db.salaries.forEach(s => { if (s.role_id === o.id) s.role_id = null; }); });
         if (t === 'salary_tables') ms.forEach(o => db.salary_rates = db.salary_rates.filter(r => r.table_id !== o.id));
         if (t === 'tasks') ms.forEach(o => db.entries.forEach(e => { if (e.task_id === o.id) e.task_id = null; }));

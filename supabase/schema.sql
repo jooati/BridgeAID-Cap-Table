@@ -4,7 +4,7 @@
 -- ============================================================================
 
 -- ---------- reset (dev-friendly; comment out after go-live) ----------
--- drop table if exists approvals, salaries, entries, periods, tasks, task_categories, task_groups,
+-- drop table if exists audit_log, approvals, salaries, entries, periods, tasks, task_categories, task_groups,
                      salary_rates, salary_tables, roles, owners cascade;
 -- drop function if exists is_admin() cascade;
 -- drop function if exists my_owner_id() cascade;
@@ -305,3 +305,53 @@ drop trigger if exists approvals_by on approvals;
 create trigger approvals_by before insert on approvals for each row execute function default_approved_by();
 drop policy if exists approvals_own_ins on approvals;
 create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id() or is_admin());
+
+-- ---- audit log: every row change on the shared tables, written by triggers only ----
+create table if not exists audit_log (
+  id         bigserial primary key,
+  at         timestamptz not null default now(),
+  actor      text references owners(id) on delete set null,   -- my_owner_id() at the time; null = service role / system
+  action     text not null,                                   -- insert | update | delete
+  table_name text not null,
+  row_key    text,                                            -- primary key of the changed row
+  period_id  text,
+  owner_id   text,
+  old        jsonb,
+  new        jsonb
+);
+create index if not exists audit_log_at on audit_log(at desc);
+alter table audit_log enable row level security;
+drop policy if exists audit_log_read on audit_log;
+create policy audit_log_read on audit_log for select to authenticated using (true);
+-- (no insert/update/delete policies: clients cannot write, the security-definer trigger can)
+create or replace function audit_row() returns trigger language plpgsql security definer set search_path = public as $$
+declare o jsonb; n jsonb; r jsonb; k text; pid text; oid text;
+begin
+  if tg_op <> 'INSERT' then o := to_jsonb(old); end if;
+  if tg_op <> 'DELETE' then n := to_jsonb(new); end if;
+  if tg_op = 'UPDATE' then
+    if o = n then return new; end if;
+    -- the approval-reset trigger touches these three columns on every card edit: not worth a log line
+    if tg_table_name = 'periods' and (o - 'needs_reapproval' - 'edited_by' - 'edited_at') = (n - 'needs_reapproval' - 'edited_by' - 'edited_at') then return new; end if;
+  end if;
+  r := coalesce(n, o);
+  k := case tg_table_name
+         when 'salary_rates' then (r->>'table_id') || ':' || (r->>'role_id')
+         when 'salaries'     then (r->>'period_id') || ':' || (r->>'owner_id')
+         when 'approvals'    then (r->>'period_id') || ':' || (r->>'owner_id')
+         else r->>'id' end;
+  pid := case when tg_table_name = 'periods' then r->>'id' else r->>'period_id' end;
+  oid := case when tg_table_name = 'owners'  then r->>'id' else r->>'owner_id'  end;
+  insert into audit_log(actor, action, table_name, row_key, period_id, owner_id, old, new)
+  values (my_owner_id(), lower(tg_op), tg_table_name, k, pid, oid, o, n);
+  return coalesce(new, old);
+end $$;
+do $$ declare t text; begin
+  foreach t in array array['entries','salaries','approvals','periods','owners','roles','salary_tables','salary_rates','tasks','task_categories','task_groups'] loop
+    execute format('drop trigger if exists audit_%I on %I', t, t);
+    execute format('create trigger audit_%I after insert or update or delete on %I for each row execute function audit_row()', t, t);
+  end loop; end $$;
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'audit_log') then
+    alter publication supabase_realtime add table audit_log;
+  end if; end $$;

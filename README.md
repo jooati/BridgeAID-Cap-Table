@@ -13,7 +13,10 @@ write to the database (row-level security decides who may change what), and Real
 
 * **Owner** — sees everything, edits their own card while the period is not finalised, approves only for themselves.
 * **Admin** (`owners.is_admin`) — also maintains master data (tasks & weights, roles, salary tables, owners), adds/removes/reopens
-  months and links owners to sign-in accounts (Owners tab → *Sign-in account*).
+  months, approves on behalf of any owner (the card then says *Approved by …*) and links owners to sign-in accounts
+  (Owners tab → *Sign-in account*).
+* **Audit log** — database triggers record every row change (who, when, old/new) in `audit_log`; the bottom of the
+  *Work log & task report* tab lists them newest first with period / owner / table filters and an *Export audit CSV* button.
 
 The calculation (in `js/calc.js`) is unchanged from the single-file version — see the formula block in `CLAUDE.md`.
 
@@ -28,8 +31,9 @@ The calculation (in `js/calc.js`) is unchanged from the single-file version — 
 
 * Fresh project: run the whole `supabase/schema.sql` in the SQL Editor (it drops and recreates everything, then seeds the 7 owners,
   roles, salary table, task catalog and the periods).
-* Project that already has the schema: paste only the **MIGRATION** block at the end of `schema.sql` (adds the
-  `list_auth_users()` RPC used by the admin panel and refines the approval-reset trigger; keeps all data).
+* Project that already has the schema: paste only the **MIGRATION** block at the end of `schema.sql` (idempotent, keeps all
+  data): the `list_auth_users()` RPC, the refined approval-reset trigger, `approvals.approved_by` with its policy, and the
+  `audit_log` table with its triggers and Realtime publication.
 
 ## Adding a user
 
