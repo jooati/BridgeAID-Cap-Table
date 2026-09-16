@@ -166,3 +166,25 @@ test('resilience (vi): a failed core table (owners) shows "Load failed" and a no
   assert.equal(t.$$('#trackerTable thead th[data-col]').length, 12, 'periods still rendered');
   assert.ok(t.text(t.$('#notice')).includes('Some data could not be loaded (owners)'));
 });
+
+test('status pill wording: Live / Offline / Load failed only', async () => {
+  const t = await setup();
+  const pill = () => ({text: t.text(t.$('#syncPill')), cls: t.$('#syncPill').className});
+  assert.deepEqual(pill(), {text: 'Live', cls: 'pill online'});
+  const ch = t.sb.channels[0];
+  ch.setStatus('CHANNEL_ERROR'); assert.deepEqual(pill(), {text: 'Offline', cls: 'pill offline'});
+  ch.setStatus('TIMED_OUT'); assert.equal(pill().text, 'Offline');
+  ch.setStatus('SUBSCRIBED'); assert.deepEqual(pill(), {text: 'Live', cls: 'pill online'});
+  /* an optional table failing on a reload does not change the wording */
+  t.sb.fail.audit_log = {message: 'gone', code: '42P01'}; t.D.onRealtime('audit_log'); await t.D.flushReload();
+  assert.equal(pill().text, 'Live'); delete t.sb.fail.audit_log;
+  /* a core table failing on a reload does */
+  t.sb.fail.entries = {message: 'permission denied for table entries', code: '42501'}; t.D.onRealtime('entries'); await t.D.flushReload();
+  assert.deepEqual(pill(), {text: 'Load failed', cls: 'pill offline'});
+  delete t.sb.fail.entries; t.D.onRealtime('entries'); await t.D.flushReload();
+  assert.equal(pill().text, 'Live', 'recovers once the core table loads again');
+  /* signed out */
+  await t.A.signOut(); assert.deepEqual(pill(), {text: 'Offline', cls: 'pill local'});
+  await t.A.signIn('jal@example.com', 'secret123'); await t.D.flushReload();
+  assert.equal(pill().text, 'Live');
+});

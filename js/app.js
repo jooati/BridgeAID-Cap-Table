@@ -61,6 +61,13 @@ export function tabFromHash() { const s = window.location.hash.slice(1); return 
 function openMenu() { menuOpen = true; $('navMenu').removeAttribute('hidden'); const b = $('menuBtn'); b.setAttribute('aria-expanded', 'true'); b.classList.add('open'); }
 export function closeMenu(rf) { menuOpen = false; const m = $('navMenu'); if (m) m.setAttribute('hidden', ''); const b = $('menuBtn'); if (b) { b.setAttribute('aria-expanded', 'false'); b.classList.remove('open'); if (rf) b.focus(); } }
 function setPill(kind, txt) { const p = $('syncPill'); if (!p) return; p.className = 'pill ' + kind; p.innerHTML = '<span class="dot"></span>' + C.esc(txt); }
+/* exactly three states: Live (realtime connected) · Offline (signed out, loading, or not connected) · Load failed (a core table failed) */
+let rtOnline = false;
+export function updatePill() {
+  if (!A.isSignedIn() || !D.S) { setPill('local', 'Offline'); return; }
+  if (D.coreFailed()) { setPill('offline', 'Load failed'); return; }
+  setPill(rtOnline ? 'online' : 'offline', rtOnline ? 'Live' : 'Offline');
+}
 
 function wireHeader() {
   $('topNav').addEventListener('click', e => { const a = e.target.closest('a[data-slug]'); if (!a) return; e.preventDefault(); goTab(a.dataset.slug, true); });
@@ -87,27 +94,25 @@ export async function boot(opts = {}) {
     bootedDoc = document;
     renderTabNav(); wireHeader(); initTracker(); initTasks(); initOwners(); initReport(); initDiag();
     D.onChange(ev => {
-      if (ev.type === 'data') { if (!ev.slices || ev.slices.includes('owners') || ev.slices.includes('all')) { A.resolveOwner(); invalidateAuthUsers(); } refreshNotice(); requestRender(); }
-      else if (ev.type === 'status') setPill(ev.online && !D.coreFailed() ? 'online' : 'offline', D.coreFailed() ? 'Load failed' : (ev.text || (ev.online ? 'Live' : 'Offline')));
+      if (ev.type === 'data') { if (!ev.slices || ev.slices.includes('owners') || ev.slices.includes('all')) { A.resolveOwner(); invalidateAuthUsers(); } refreshNotice(); updatePill(); requestRender(); }
+      else if (ev.type === 'status') { rtOnline = !!ev.online; updatePill(); }
       else if (ev.type === 'error') { toast(ev.message, 'err'); }
     });
   }
   goTab(tabFromHash(), false);
   let sb;
   try { sb = await D.getClient(); }
-  catch (e) { console.error(e); setPill('offline', 'Database library failed to load'); toast('Could not load the Supabase client — check your connection and reload.', 'err'); return; }
-  setPill('offline', 'Connecting…');
+  catch (e) { console.error(e); updatePill(); toast('Could not load the Supabase client — check your connection and reload.', 'err'); return; }
+  updatePill();
   await A.initAuth(sb, {
     onSignedIn: async () => {
-      setPill('offline', 'Loading…');
       await D.loadAll();                              // never throws: failed tables degrade their own slice
-      A.resolveOwner(); renderAll(); goTab(tabFromHash(), false); refreshNotice();
-      if (D.coreFailed()) setPill('offline', 'Load failed');
+      A.resolveOwner(); renderAll(); goTab(tabFromHash(), false); refreshNotice(); updatePill();
       D.subscribeRealtime();
     },
-    onSignedOut: () => { D.unsubscribeRealtime(); D.clearState(); clearUi(); setPill('local', 'Offline'); },
+    onSignedOut: () => { D.unsubscribeRealtime(); rtOnline = false; D.clearState(); clearUi(); updatePill(); },
     onToast: toast,
-    onError: e => { setPill('offline', 'Load failed'); toast('Could not load the data: ' + (e.message || e), 'err'); },
+    onError: e => { updatePill(); toast('Could not load the data: ' + (e.message || e), 'err'); },
   });
-  if (!A.isSignedIn()) setPill('local', 'Signed out');
+  updatePill();
 }

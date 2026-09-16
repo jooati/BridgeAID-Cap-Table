@@ -153,7 +153,7 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
       if (name === 'is_admin') return {data: isAdmin(), error: null};
       return {data: null, error: {message: 'unknown rpc ' + name}};
     },
-    channel(name) { const ch = {name, _handlers: [], status: null, on(type, filter, cb) { ch._handlers.push({table: filter.table || '*', cb}); return ch; }, subscribe(cb) { ch.status = 'SUBSCRIBED'; if (cb) cb('SUBSCRIBED'); return ch; }, unsubscribe() { ch.status = 'CLOSED'; } }; channels.push(ch); return ch; },
+    channel(name) { const ch = {name, _handlers: [], status: null, _cb: null, on(type, filter, cb) { ch._handlers.push({table: filter.table || '*', cb}); return ch; }, subscribe(cb) { ch._cb = cb; ch.setStatus('SUBSCRIBED'); return ch; }, unsubscribe() { ch.status = 'CLOSED'; }, setStatus(s) { ch.status = s; if (ch._cb) ch._cb(s); } }; channels.push(ch); return ch; },
     async removeChannel(ch) { ch.unsubscribe(); const i = channels.indexOf(ch); if (i >= 0) channels.splice(i, 1); return 'ok'; },
     channels,
     /* helpers for tests */

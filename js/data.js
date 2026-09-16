@@ -141,12 +141,12 @@ export function subscribeRealtime() {
   REALTIME_TABLES.forEach(t => channel.on('postgres_changes', {event: '*', schema: 'public', table: t}, () => onRealtime(t)));
   channel.subscribe(status => {
     const online = status === 'SUBSCRIBED';
-    notify({type: 'status', online, text: online ? 'Live' : (status === 'CLOSED' ? 'Offline' : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'Offline — reconnecting' : 'Connecting…')});
+    notify({type: 'status', online, status});
     if (online) scheduleReload('all');                                 // catch up on anything missed while disconnected
   });
   return channel;
 }
-export async function unsubscribeRealtime() { if (channel && sb) { try { await sb.removeChannel(channel); } catch (e) { /* ignore */ } } channel = null; }
+export async function unsubscribeRealtime() { if (channel && sb) { try { await sb.removeChannel(channel); } catch (e) { /* ignore */ } } channel = null; notify({type: 'status', online: false, status: 'CLOSED'}); }
 
 /* ---------- writes ---------- */
 let pending = 0, deferredReload = false; const timers = new Map(); const waiters = [];
