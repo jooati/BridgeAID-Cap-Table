@@ -229,3 +229,12 @@ button.pill{border:0;font-family:inherit;cursor:pointer;} button.pill:hover{outl
 .notice-warn{background:var(--warn-bg);color:#7A5B00;border:1px solid #F0D890;border-radius:8px;padding:10px 12px;font-size:13px;} .notice-warn code{background:#fff;padding:1px 5px;border-radius:4px;font-size:12px;}
 .modal.diag{max-width:760px;} .diag table.rp{margin-top:8px;} .diag td.ok{color:var(--ok);font-weight:700;white-space:nowrap;} .diag td.fail{color:var(--danger);font-weight:700;white-space:nowrap;} .diag span.fail{color:var(--danger);}
 .diag pre{margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word;background:#F7F8FA;border:1px solid var(--line);border-radius:6px;padding:5px 7px;} .diag code{font-size:12px;}
+/* language switcher (EN / HU) — header and sign-in modal */
+.lang-sw{display:inline-flex;flex:0 0 auto;border:1px solid rgba(255,255,255,.22);border-radius:8px;overflow:hidden;}
+.lang-sw button{background:transparent;color:#D8DDE5;border-radius:0;padding:6px 8px;font-size:11.5px;font-weight:700;letter-spacing:.3px;}
+.lang-sw button+button{border-left:1px solid rgba(255,255,255,.22);}
+.lang-sw button:hover{color:#fff;} .lang-sw button.active{background:var(--gold);color:var(--navy);}
+.modal .brandline .lang-sw{margin-left:auto;border-color:var(--line);} .modal .lang-sw button{color:var(--slate);} .modal .lang-sw button+button{border-left-color:var(--line);}
+.modal .lang-sw button:hover{color:var(--navy);} .modal .lang-sw button.active{color:var(--navy);}
+/* the tab strip may scroll sideways on narrow screens, without a scrollbar changing the header height */
+.topnav{scrollbar-width:none;} .topnav::-webkit-scrollbar{display:none;}

@@ -16,6 +16,7 @@ js/ui-owners.js       salary-table matrix, roles, owners & baseline
 js/ui-tasks.js        task catalog & weights
 js/ui-report.js       work log & task report, audit log, CSV / PDF export
 js/ui-diag.js         Connection diagnostics panel (click the status pill): one probe per table + RPCs
+js/i18n.js            language switcher EN / HU: tr(), tn(), pl(), ymL(), the Hungarian dictionaries
 js/app.js             boot, tabs (#hash deep links), toast
 tests/                jsdom tests (node), run with `npm test`
 scripts/seed-example.mjs   dev-only demo data (never exposed in the UI)
@@ -55,6 +56,13 @@ Salary table in force = latest table with effective_from ≤ period month (fallb
 
 ## UI conventions
 Brand: navy #222A35, gold #FFC000. Cards: tasks mini-table (name ×w · hours · × w = total) → Σ line → salary block → `W − paid_w = Equity hours` → share. Columns collapsible except the newest. Header single row: logo · tabs · live/offline pill · Sign in (owner name + admin badge) · menu (Export CSV, Export PDF).
+
+## Languages (js/i18n.js)
+English and Hungarian, switched by the EN | HU buttons (header and sign-in modal); the choice is saved in localStorage, default = browser language.
+- Code strings: `tr('English source', {vars})` — the English text is the key, the Hungarian text lives in `HU`. Use `N_('…')` for strings translated later via a variable, `trs([...])` for header rows.
+- Static markup: `data-i18n="key"` (→ `HU_HTML`, inline tags allowed) or empty `data-i18n` / `data-i18n-title` (the English text is the key in `HU`).
+- Database content stays canonical English. Seed task / category / group / role names are shown through `tn(name)` (`NAMES`), period labels through `pl(row)`; an item renamed by an admin is shown as stored in both languages.
+- Number formats are identical in both languages. **Every new user-visible string needs a Hungarian entry** — tests/i18n.test.mjs scans the code and the markup and fails otherwise.
 
 ## Testing
 `npm test` runs tests/*.test.mjs with jsdom. Supabase is mocked in tests (tests/mock-supabase.mjs). Add a test for every behaviour change.

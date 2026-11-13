@@ -18,6 +18,10 @@ write to the database (row-level security decides who may change what), and Real
 * **Audit log** — database triggers record every row change (who, when, old/new) in `audit_log`; the bottom of the
   *Work log & task report* tab lists them newest first with period / owner / table filters and an *Export audit CSV* button.
 
+* **Languages** — English and Hungarian; switch with the **EN | HU** buttons in the header (also on the sign-in screen). The
+  choice is remembered per browser and defaults to the browser language. Exports (CSV, PDF) follow the selected language.
+  The database keeps the canonical English task / role names; the Hungarian names of the seed catalog come from `js/i18n.js`.
+
 The calculation (in `js/calc.js`) is unchanged from the single-file version — see the formula block in `CLAUDE.md`.
 
 ## Deploy

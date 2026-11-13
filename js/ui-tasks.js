@@ -7,24 +7,26 @@ import * as C from './calc.js';
 import * as D from './data.js';
 import * as A from './auth.js';
 import { renderAll, requestRender } from './app.js';
+import { tr, tn } from './i18n.js';
 
 const {esc, fmt} = C;
 
+/* Names are shown through tn(): Hungarian for seed items while their stored name is the English seed text. */
 export function renderTasks() {
   const S = D.S, host = document.getElementById('taskSection'); if (!S || !host) return;
   const ro = !A.canMaster(), dis = ro ? 'disabled' : '';
-  let html = ro ? '<p class="role-note">Task weights are maintained by the admins — shown read-only.</p>' : '';
+  let html = ro ? `<p class="role-note">${esc(tr('Task weights are maintained by the admins — shown read-only.'))}</p>` : '';
   S.catalog.groups.forEach(g => {
-    html += `<div class="td-group" data-gid="${esc(g.id)}"><div class="td-group-head"><span class="gtag">${g.id === 'proj' ? 'Projects' : 'Operations'}</span><input type="text" value="${esc(g.name)}" data-act="groupName" data-gid="${esc(g.id)}" ${dis}></div>`;
+    html += `<div class="td-group" data-gid="${esc(g.id)}"><div class="td-group-head"><span class="gtag">${esc(g.id === 'proj' ? tr('Projects') : tr('Operations'))}</span><input type="text" value="${esc(tn(g.name))}" data-act="groupName" data-gid="${esc(g.id)}" ${dis}></div>`;
     g.categories.forEach(c => {
       const cw = c.subs.reduce((a, s) => a + (+s.weight || 0), 0);
-      html += `<div class="td-cat" data-cid="${esc(c.id)}"><div class="td-cat-head"><span class="ctag">${esc(c.code || c.id)}</span><input type="text" value="${esc(c.name)}" data-act="catName" data-cid="${esc(c.id)}" ${dis}><span class="cat-wt">Σ ${fmt(cw)}</span></div><div class="td-cat-body">`;
+      html += `<div class="td-cat" data-cid="${esc(c.id)}"><div class="td-cat-head"><span class="ctag">${esc(c.code || c.id)}</span><input type="text" value="${esc(tn(c.name))}" data-act="catName" data-cid="${esc(c.id)}" ${dis}><span class="cat-wt">Σ ${fmt(cw)}</span></div><div class="td-cat-body">`;
       c.subs.forEach(s => {
-        html += `<div class="td-sub" data-tid="${esc(s.id)}"><input class="nm" type="text" value="${esc(s.name)}" data-act="taskName" data-tid="${esc(s.id)}" ${dis}><input class="wt" type="number" step="0.5" min="0" value="${s.weight}" data-act="taskWeight" data-tid="${esc(s.id)}" ${dis}><button class="xbtn" data-act="delTask" data-tid="${esc(s.id)}" ${dis}>×</button></div>`;
+        html += `<div class="td-sub" data-tid="${esc(s.id)}"><input class="nm" type="text" value="${esc(tn(s.name))}" data-act="taskName" data-tid="${esc(s.id)}" ${dis}><input class="wt" type="number" step="0.5" min="0" value="${s.weight}" data-act="taskWeight" data-tid="${esc(s.id)}" ${dis}><button class="xbtn" data-act="delTask" data-tid="${esc(s.id)}" ${dis}>×</button></div>`;
       });
-      html += `<button class="td-add" data-act="addTask" data-cid="${esc(c.id)}" ${dis}>+ Add task</button></div></div>`;
+      html += `<button class="td-add" data-act="addTask" data-cid="${esc(c.id)}" ${dis}>${esc(tr('+ Add task'))}</button></div></div>`;
     });
-    html += `<button class="td-add" data-act="addCat" data-gid="${esc(g.id)}" ${dis}>+ Add category</button></div>`;
+    html += `<button class="td-add" data-act="addCat" data-gid="${esc(g.id)}" ${dis}>${esc(tr('+ Add category'))}</button></div>`;
   });
   host.classList.toggle('ro-master', ro);
   host.innerHTML = html;
@@ -34,7 +36,7 @@ export function addTask(cid) { if (!A.canMaster()) return; D.addTask(cid); rende
 export function addCat(gid) { if (!A.canMaster()) return; D.addCategory(gid); renderAll(); }
 export function delTask(tid) {
   if (!A.canMaster()) return;
-  if (D.taskInUse(tid) && !window.confirm('This task has logged entries (weight snapshots are kept). Delete anyway?')) return;
+  if (D.taskInUse(tid) && !window.confirm(tr('This task has logged entries (weight snapshots are kept). Delete anyway?'))) return;
   D.delTask(tid); renderAll();
 }
 export function setTaskWeight(tid, v) { if (!A.canMaster()) return; D.updateTask(tid, {weight: v}); requestRender(); }

@@ -7,6 +7,7 @@ import * as C from './calc.js';
 import * as D from './data.js';
 import * as A from './auth.js';
 import { toast, renderAll, requestRender, moveFocus } from './app.js';
+import { tr, tn, pl, ymL, whenL } from './i18n.js';
 
 const {esc, fmt, fmt1, money} = C;
 const COL_KEY = 'bridgeaid:tracker:collapsed';
@@ -24,42 +25,43 @@ export function renderTracker() {
   const S = D.S, tbl = document.getElementById('trackerTable'); if (!S || !tbl) return;
   if (firstVisit && !collapsed.size) { /* first visit: keep current + previous month open */ C.displayRows(S).forEach((r, i) => { if (i >= 2) collapsed.add(r.id); }); firstVisit = false; }
   const owners = C.sortedOwners(S), rows = C.displayRows(S), comp = C.computeAll(S), last = C.ownerCumulative(S), admin = A.canMaster();
-  let html = '<thead><tr><th class="corner"><div class="ownhead" style="background:#EEF1F5;border-color:transparent"><div class="nm">Owner</div><div class="cumtot">Cumulative share</div></div></th>';
+  const H = esc(tr('h')), xAvg = esc(tr('× avg. weight')), finBadge = `<span class="fin-badge" title="${esc(tr('Finalised — every owner approved'))}">✓</span>`;
+  let html = `<thead><tr><th class="corner"><div class="ownhead" style="background:#EEF1F5;border-color:transparent"><div class="nm">${esc(tr('Owner'))}</div><div class="cumtot">${esc(tr('Cumulative share'))}</div></div></th>`;
   rows.forEach(r => {
-    const isCur = isCurrent(S, r), col = isCollapsed(S, r), st = C.colStatus(S, r);
+    const isCur = isCurrent(S, r), col = isCollapsed(S, r), st = C.colStatus(S, r), lbl = esc(pl(r));
     html += `<th class="${col ? 'col-collapsed' : ''}" data-col="${esc(r.id)}"><div class="colhead ${isCur ? 'cur' : ''} ${r.kind !== 'month' ? 'special' : ''}">
-      <button class="vlbl arrow" data-act="toggleCol" data-rid="${esc(r.id)}" title="Expand">▶ ${st.fin ? '<span class="fin-badge" title="Finalised — every owner approved">✓</span> ' : ''}${esc(r.label)}</button>
-      <div class="top"><div><div class="kind">${r.kind === 'month' ? (isCur ? 'Current month' : 'Month') : 'Special period'}</div><div class="lbl">${esc(r.label)}${st.fin ? ' <span class="fin-badge" title="Finalised — every owner approved">✓</span>' : ''}</div></div>
-        <div class="hbtns">${(admin && D.canRemoveMonth(r) && !isCur) ? `<button class="cbtn" data-act="removeRow" data-rid="${esc(r.id)}" title="Remove this month">×</button>` : ''}${isCur ? '' : `<button class="cbtn arrowbtn" data-act="toggleCol" data-rid="${esc(r.id)}" title="Collapse column">◀</button>`}</div></div>
-      <div class="tot">Equity hours in period <b>${fmt1(comp[r.id].colTotal)}</b></div>
-      <span class="st ${st.cls}">${st.txt}</span>
-      ${r.audit.editedBy ? `<div class="audit-line">edited by ${esc(C.ownerName(S, r.audit.editedBy))} · ${C.fmtWhen(r.audit.editedAt)}</div>` : ''}
-      <div class="actions2">${(st.fin && admin) ? `<button class="cbtn" data-act="reopenRow" data-rid="${esc(r.id)}">Reopen</button>` : ''}</div></div></th>`;
+      <button class="vlbl arrow" data-act="toggleCol" data-rid="${esc(r.id)}" title="${esc(tr('Expand'))}">▶ ${st.fin ? finBadge + ' ' : ''}${lbl}</button>
+      <div class="top"><div><div class="kind">${esc(r.kind === 'month' ? (isCur ? tr('Current month') : tr('Month')) : tr('Special period'))}</div><div class="lbl">${lbl}${st.fin ? ' ' + finBadge : ''}</div></div>
+        <div class="hbtns">${(admin && D.canRemoveMonth(r) && !isCur) ? `<button class="cbtn" data-act="removeRow" data-rid="${esc(r.id)}" title="${esc(tr('Remove this month'))}">×</button>` : ''}${isCur ? '' : `<button class="cbtn arrowbtn" data-act="toggleCol" data-rid="${esc(r.id)}" title="${esc(tr('Collapse column'))}">◀</button>`}</div></div>
+      <div class="tot">${esc(tr('Equity hours in period'))} <b>${fmt1(comp[r.id].colTotal)}</b></div>
+      <span class="st ${st.cls}">${esc(st.txt)}</span>
+      ${r.audit.editedBy ? `<div class="audit-line">${esc(tr('edited by {name} · {when}', {name: C.ownerName(S, r.audit.editedBy), when: whenL(r.audit.editedAt)}))}</div>` : ''}
+      <div class="actions2">${(st.fin && admin) ? `<button class="cbtn" data-act="reopenRow" data-rid="${esc(r.id)}">${esc(tr('Reopen'))}</button>` : ''}</div></div></th>`;
   });
   html += '</tr></thead><tbody>';
   owners.forEach(o => {
     html += `<tr data-owner="${esc(o.id)}"><td class="rowhead"><div class="ownhead"><div class="nm"><span class="sw" style="background:${C.ownerColor(S, o.id)}"></span>${esc(o.name)}</div>
-      <div class="cumtot">Cumulative share</div><div class="cumv">${fmt(last.cumShare ? last.cumShare[o.id] : 0)}%</div><div class="cumh">${fmt1(last.cum ? last.cum[o.id] : 0)} h cumulative</div></div></td>`;
+      <div class="cumtot">${esc(tr('Cumulative share'))}</div><div class="cumv">${fmt(last.cumShare ? last.cumShare[o.id] : 0)}%</div><div class="cumh">${esc(tr('{h} h cumulative', {h: fmt1(last.cum ? last.cum[o.id] : 0)}))}</div></div></td>`;
     rows.forEach(r => {
       const col = isCollapsed(S, r), c = C.cellOf(r, o.id), k = comp[r.id].cells[o.id], fin = C.colFinal(S, r), appr = !!r.approvals[o.id];
-      const editable = A.canEditCard(o.id) && !fin, mayApprove = A.canApprove(o.id), isM = r.kind === 'month', unit = isM ? 'h' : 'pts', ro = !editable;
-      const entries = (c.entries || []).map((e, i) => { const t = C.taskById(S, e.taskId); const name = t ? t.name : (e.taskName || '(removed task)'); const wl = (+e.hours || 0) * (+e.weight);
-        return `<tr><td title="${esc((t ? t.cat + ' › ' : '') + name)} · weight ×${fmt(+e.weight)}">${esc(name)} <span class="wt">×${fmt1(+e.weight)}</span></td>
+      const editable = A.canEditCard(o.id) && !fin, mayApprove = A.canApprove(o.id), isM = r.kind === 'month', unit = esc(isM ? tr('h') : tr('pts')), ro = !editable;
+      const entries = (c.entries || []).map((e, i) => { const task = C.taskById(S, e.taskId); const name = tn(task ? task.name : (e.taskName || tr('(removed task)'))); const wl = (+e.hours || 0) * (+e.weight);
+        return `<tr><td title="${esc((task ? tn(task.cat) + ' › ' : '') + name)} · ${esc(tr('weight'))} ×${fmt(+e.weight)}">${esc(name)} <span class="wt">×${fmt1(+e.weight)}</span></td>
           <td class="h" title="${fmt(+e.hours || 0)} ${unit} × ${fmt(+e.weight)} = ${fmt(wl)}"><input type="number" step="0.25" min="0" value="${e.hours}" data-act="setHours" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" data-i="${i}" ${ro ? 'disabled' : ''}></td>
           <td class="eq" title="${fmt(+e.hours || 0)} ${unit} × ${fmt(+e.weight)} = ${fmt(wl)}">× ${fmt1(+e.weight)} = <b>${fmt1(wl)}</b></td>
-          <td class="x"><button class="xbtn" data-act="delEntry" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" data-i="${i}" title="Remove">×</button></td></tr>`; }).join('');
-      const roleOpts = '<option value="">— role —</option>' + S.roles.map(x => `<option value="${esc(x.id)}" ${c.role === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+          <td class="x"><button class="xbtn" data-act="delEntry" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" data-i="${i}" title="${esc(tr('Remove'))}">×</button></td></tr>`; }).join('');
+      const roleOpts = `<option value="">${esc(tr('— role —'))}</option>` + S.roles.map(x => `<option value="${esc(x.id)}" ${c.role === x.id ? 'selected' : ''}>${esc(tn(x.name))}</option>`).join('');
       const tb = C.tableFor(S, r.ym);
       html += `<td class="${col ? 'col-collapsed' : ''}" data-col="${esc(r.id)}"><div class="ocard ${fin ? 'final' : ''} ${ro ? 'ro' : ''} ${r.audit.needsReapproval && !appr ? 'needs' : ''}" data-card="${esc(r.id)}:${esc(o.id)}">
-        <div class="cum-mini" title="Equity hours in this period">${fmt1(k.equity)} h</div>
-        <div><div class="sec">Tasks &amp; ${unit === 'h' ? 'hours' : 'points'}</div><table class="mini"><tbody>${entries || '<tr><td style="color:var(--slate-light)">No entries</td></tr>'}</tbody></table>
-          <div class="addent"><input type="text" placeholder="+ type a task from the Task division menu" data-act="acInput" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" ${ro ? 'disabled' : ''}><div class="ac" hidden></div></div></div>
-        <div class="kv rule sum" title="Σ hours × avg. weight = Σ weighted"><span class="k">Σ ${unit === 'h' ? 'hours' : 'points'} <b>${fmt1(k.H)}</b> × avg. weight <b>${fmt1(k.avgW)}</b> =</span><span class="v">Σ weighted <b>${fmt1(k.W)}</b></span></div>
-        ${isM ? `<div class="payblk"><div class="sec">Salary this month</div><div class="pay"><select data-act="setRole" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" ${ro ? 'disabled' : ''}>${roleOpts}</select><input type="text" inputmode="decimal" placeholder="€ gross" value="${c.salary != null ? money(c.salary) : ''}" data-act="setSal" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" title="Gross salary received for this role, EUR" ${ro ? 'disabled' : ''}></div>
-          <div class="kv paid ${k.over ? 'over' : ''}" title="${money(c.salary || 0)} ÷ ${money(k.market)} market (salary table from ${tb ? C.ymLabel(tb.from) : '—'}) × 160 h = paid hours; × average task weight = weighted deduction"><span class="k">Paid hours</span><span class="v">${fmt1(k.paidHours)} h${k.over ? ' (exceeds logged)' : ''} × avg. weight ${fmt1(k.avgW)} = ${fmt1(k.paidW)}</span></div></div>` : ''}
-        <div class="kv eq" title="Paid hours are removed at your average task weight (${fmt1(k.avgW)} = Σ weighted ÷ Σ hours)"><span class="k">${fmt1(k.W)} − ${fmt1(k.paidW)} =</span><span class="v">Equity hours <b>${fmt1(k.equity)}</b></span></div>
-        <div class="kv rule"><span class="k">Equity in this ${isM ? 'month' : 'period'}</span><span class="v">${fmt(k.monthly)}%</span></div>
-        <label class="appr ${appr ? 'done' : ''}"><input type="checkbox" ${appr ? 'checked' : ''} ${mayApprove ? '' : 'disabled'} data-act="setApproval" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}">${appr ? esc(C.approvalLabel(S, r, o.id)) : (mayApprove ? 'Approve this ' + (isM ? 'month' : 'period') : (A.isSignedIn() ? 'Not yet approved' : 'Sign in to approve'))}</label>
+        <div class="cum-mini" title="${esc(tr('Equity hours in this period'))}">${fmt1(k.equity)} ${H}</div>
+        <div><div class="sec">${esc(isM ? tr('Tasks & hours') : tr('Tasks & points'))}</div><table class="mini"><tbody>${entries || `<tr><td style="color:var(--slate-light)">${esc(tr('No entries'))}</td></tr>`}</tbody></table>
+          <div class="addent"><input type="text" placeholder="${esc(tr('+ type a task from the Task division menu'))}" data-act="acInput" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" ${ro ? 'disabled' : ''}><div class="ac" hidden></div></div></div>
+        <div class="kv rule sum" title="${esc(tr('Σ hours × avg. weight = Σ weighted'))}"><span class="k">${esc(isM ? tr('Σ hours') : tr('Σ points'))} <b>${fmt1(k.H)}</b> ${xAvg} <b>${fmt1(k.avgW)}</b> =</span><span class="v">${esc(tr('Σ weighted'))} <b>${fmt1(k.W)}</b></span></div>
+        ${isM ? `<div class="payblk"><div class="sec">${esc(tr('Salary this month'))}</div><div class="pay"><select data-act="setRole" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" ${ro ? 'disabled' : ''}>${roleOpts}</select><input type="text" inputmode="decimal" placeholder="${esc(tr('€ gross'))}" value="${c.salary != null ? money(c.salary) : ''}" data-act="setSal" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}" title="${esc(tr('Gross salary received for this role, EUR'))}" ${ro ? 'disabled' : ''}></div>
+          <div class="kv paid ${k.over ? 'over' : ''}" title="${esc(tr('{sal} ÷ {market} market (salary table from {from}) × 160 h = paid hours; × average task weight = weighted deduction', {sal: money(c.salary || 0), market: money(k.market), from: tb ? ymL(tb.from) : '—'}))}"><span class="k">${esc(tr('Paid hours'))}</span><span class="v">${fmt1(k.paidHours)} ${H}${k.over ? esc(tr(' (exceeds logged)')) : ''} ${xAvg} ${fmt1(k.avgW)} = ${fmt1(k.paidW)}</span></div></div>` : ''}
+        <div class="kv eq" title="${esc(tr('Paid hours are removed at your average task weight ({avgW} = Σ weighted ÷ Σ hours)', {avgW: fmt1(k.avgW)}))}"><span class="k">${fmt1(k.W)} − ${fmt1(k.paidW)} =</span><span class="v">${esc(tr('Equity hours'))} <b>${fmt1(k.equity)}</b></span></div>
+        <div class="kv rule"><span class="k">${esc(isM ? tr('Equity in this month') : tr('Equity in this period'))}</span><span class="v">${fmt(k.monthly)}%</span></div>
+        <label class="appr ${appr ? 'done' : ''}"><input type="checkbox" ${appr ? 'checked' : ''} ${mayApprove ? '' : 'disabled'} data-act="setApproval" data-rid="${esc(r.id)}" data-oid="${esc(o.id)}">${esc(appr ? C.approvalLabel(S, r, o.id) : (mayApprove ? (isM ? tr('Approve this month') : tr('Approve this period')) : (A.isSignedIn() ? tr('Not yet approved') : tr('Sign in to approve'))))}</label>
       </div></td>`;
     });
     html += '</tr>';
@@ -71,14 +73,14 @@ export function renderTracker() {
 export function barHTML(title, parts, total) {
   const segs = parts.filter(p => p.v > 0).map(p => { const pct = total > 0 ? p.v / total * 100 : 0; const wide = pct >= 7;
     return `<div class="seg" style="width:${pct}%;background:${p.c};color:${C.ink(p.c)}" title="${esc(p.name)}: ${fmt(pct)}%">${wide ? `<span class="sn">${esc(p.name)}</span><span class="sp">${fmt(pct)}%</span>` : ''}</div>`; }).join('');
-  return `<div class="bar-row"><div class="bar-title">${esc(title)}</div><div class="bar">${segs || '<div class="seg empty">no data</div>'}</div></div>`;
+  return `<div class="bar-row"><div class="bar-title">${esc(title)}</div><div class="bar">${segs || `<div class="seg empty">${esc(tr('no data'))}</div>`}</div></div>`;
 }
 export function barsHTML(S) {
   const owners = C.sortedOwners(S), last = C.ownerCumulative(S);
   const base = owners.map(o => ({name: o.name, v: +o.baseline || 0, c: C.ownerColor(S, o.id)})); const baseTot = base.reduce((a, p) => a + p.v, 0);
   const cur = owners.map(o => ({name: o.name, v: last.cumShare ? last.cumShare[o.id] : 0, c: C.ownerColor(S, o.id)})); const curTot = cur.reduce((a, p) => a + p.v, 0);
-  return barHTML('Baseline ownership', base, baseTot) + barHTML('Current cumulative equity share', cur, curTot)
-    + `<div class="bar-legend">${owners.map(o => `<span><i style="background:${C.ownerColor(S, o.id)}"></i>${esc(o.name)}</span>`).join('')}${Math.abs(baseTot - 100) > 0.005 ? `<span class="bar-warn">Baseline sums to ${fmt(baseTot)}% — edit on the Owners tab</span>` : ''}</div>`;
+  return barHTML(tr('Baseline ownership'), base, baseTot) + barHTML(tr('Current cumulative equity share'), cur, curTot)
+    + `<div class="bar-legend">${owners.map(o => `<span><i style="background:${C.ownerColor(S, o.id)}"></i>${esc(o.name)}</span>`).join('')}${Math.abs(baseTot - 100) > 0.005 ? `<span class="bar-warn">${esc(tr('Baseline sums to {pct}% — edit on the Owners tab', {pct: fmt(baseTot)}))}</span>` : ''}</div>`;
 }
 export function renderPie() { const host = document.getElementById('bars'); if (!host || !D.S) return; host.innerHTML = barsHTML(D.S); }
 
@@ -89,11 +91,12 @@ export function expandAll() { collapsed.clear(); saveCollapsed(); renderTracker(
 
 /* ---------- autocomplete ---------- */
 let _acSel = -1;
-export function acMatches(S, q) { q = q.trim().toLowerCase(); if (!q) return []; return C.allTasks(S).filter(t => t.name.toLowerCase().includes(q) || t.cat.toLowerCase().includes(q)).slice(0, 12); }
+/* matches the stored (English) name and the name shown in the current language */
+export function acMatches(S, q) { q = q.trim().toLowerCase(); if (!q) return []; const has = s => String(s).toLowerCase().includes(q); return C.allTasks(S).filter(t => has(t.name) || has(t.cat) || has(tn(t.name)) || has(tn(t.cat))).slice(0, 12); }
 function acInput(inp, rid, oid) {
   const box = inp.nextElementSibling, m = acMatches(D.S, inp.value); _acSel = -1;
   if (!m.length) { box.hidden = true; box.innerHTML = ''; return; }
-  box.innerHTML = m.map((t, i) => `<div class="ac-item" data-i="${i}" data-act="acPick" data-rid="${esc(rid)}" data-oid="${esc(oid)}" data-tid="${esc(t.id)}"><span class="wt">×${fmt(t.weight)}</span>${esc(t.name)}<small>${esc(t.group)} › ${esc(t.cat)}</small></div>`).join('');
+  box.innerHTML = m.map((t, i) => `<div class="ac-item" data-i="${i}" data-act="acPick" data-rid="${esc(rid)}" data-oid="${esc(oid)}" data-tid="${esc(t.id)}"><span class="wt">×${fmt(t.weight)}</span>${esc(tn(t.name))}<small>${esc(tn(t.group))} › ${esc(tn(t.cat))}</small></div>`).join('');
   box.hidden = false;
 }
 function acKey(e, inp, rid, oid) {
@@ -119,18 +122,18 @@ function commitHoursAndAdvance(el) {
 }
 
 /* ---------- actions ---------- */
-function guard(rid, oid) { const row = C.rowById(D.S, rid); if (!row) return false; if (C.colFinal(D.S, row)) { toast('This period is finalised — an admin must reopen it first.', 'err'); return false; } if (!A.canEditCard(oid)) { toast(A.isSignedIn() ? 'You can only edit your own card.' : 'Sign in to edit.', 'err'); return false; } return true; }
+function guard(rid, oid) { const row = C.rowById(D.S, rid); if (!row) return false; if (C.colFinal(D.S, row)) { toast(tr('This period is finalised — an admin must reopen it first.'), 'err'); return false; } if (!A.canEditCard(oid)) { toast(A.isSignedIn() ? tr('You can only edit your own card.') : tr('Sign in to edit.'), 'err'); return false; } return true; }
 export function setHours(rid, oid, i, v) { if (!guard(rid, oid)) return; D.setHours(rid, oid, i, v); requestRender(); }
 export function delEntry(rid, oid, i) { if (!guard(rid, oid)) return; D.delEntry(rid, oid, i); renderAll(); }
 export function setRole(rid, oid, v) { if (!guard(rid, oid)) return; D.setSalary(rid, oid, {role: v || null}); renderAll(); }
 export function setSal(rid, oid, v) { if (!guard(rid, oid)) return; const n = C.parseMoney(v); D.setSalary(rid, oid, {salary: isNaN(n) ? null : n}); renderAll(); }
 export function setApproval(rid, oid, checked) {
-  if (!A.canApprove(oid)) { toast(A.isSignedIn() ? 'You can only approve as yourself.' : 'Sign in to approve.', 'err'); renderTracker(); return; }
-  D.setApproval(rid, oid, checked); renderAll(); toast(checked ? 'Approved.' : 'Approval withdrawn.', 'ok');
+  if (!A.canApprove(oid)) { toast(A.isSignedIn() ? tr('You can only approve as yourself.') : tr('Sign in to approve.'), 'err'); renderTracker(); return; }
+  D.setApproval(rid, oid, checked); renderAll(); toast(checked ? tr('Approved.') : tr('Approval withdrawn.'), 'ok');
 }
-export function reopenRow(rid) { if (!A.canMaster()) return; if (!window.confirm('Reopen this finalised period? All approvals will be cleared.')) return; D.reopen(rid); renderAll(); }
-export function removeRow(rid) { if (!A.canMaster()) return; const row = C.rowById(D.S, rid); if (!D.canRemoveMonth(row)) return; if (!window.confirm(`Remove ${row.label}? Its entries will be deleted.`)) return; D.removeMonth(rid); renderAll(); }
-export function addMonth() { if (!A.canMaster()) return; const r = D.addMonth(); renderAll(); toast(`Added ${r.label}.`, 'ok'); }
+export function reopenRow(rid) { if (!A.canMaster()) return; if (!window.confirm(tr('Reopen this finalised period? All approvals will be cleared.'))) return; D.reopen(rid); renderAll(); }
+export function removeRow(rid) { if (!A.canMaster()) return; const row = C.rowById(D.S, rid); if (!D.canRemoveMonth(row)) return; if (!window.confirm(tr('Remove {label}? Its entries will be deleted.', {label: pl(row)}))) return; D.removeMonth(rid); renderAll(); }
+export function addMonth() { if (!A.canMaster()) return; const r = D.addMonth(); renderAll(); toast(tr('Added {label}.', {label: ymL(r.ym)}), 'ok'); }
 
 /* ---------- wiring (once) ---------- */
 export function initTracker() {

@@ -5,12 +5,14 @@
    ============================================================================ */
 import * as D from './data.js';
 import * as C from './calc.js';
+import { tr } from './i18n.js';
 
 export const PROBE_TABLES = ['owners', 'roles', 'salary_tables', 'salary_rates', 'task_groups', 'task_categories', 'tasks', 'periods', 'entries', 'salaries', 'approvals', 'audit_log'];
 export const PROBE_RPCS = ['my_owner_id', 'is_admin'];
 const $ = id => document.getElementById(id);
 export let lastRun = null;   // promise of the run in progress / last run (tests await it)
 
+/* raw error text — never translated, it is what Supabase said */
 export function errorText(e) {
   if (!e) return '';
   const parts = [e.message || String(e)];
@@ -30,12 +32,12 @@ export async function runDiagnostics() {
   return results;
 }
 function render(results, running) {
-  const body = $('diagBody'); if (!body) return;
-  if (running) { body.innerHTML = `<tr><td colspan="3" class="muted">Probing…</td></tr>`; return; }
-  body.innerHTML = results.map(r => `<tr data-probe="${C.esc(r.name)}" class="${r.ok ? 'ok' : 'fail'}"><td><code>${C.esc(r.name)}</code></td><td class="${r.ok ? 'ok' : 'fail'}">${r.ok ? 'OK' : 'ERROR'} <span class="muted small">${r.ms} ms</span></td>
-    <td>${r.ok ? (r.name.endsWith('()') ? `<span class="muted">→ ${C.esc(JSON.stringify(r.value))}</span>` : '') : `<pre>${C.esc(r.text)}</pre>`}${r.load && r.load !== 'ok' ? `<div class="small"><b>Last load:</b> <span class="fail">${C.esc(r.load)}</span></div>` : ''}</td></tr>`).join('');
+  const body = $('diagBody'), txt = $('diagText'); if (!body) return;
+  if (running) { body.innerHTML = `<tr><td colspan="3" class="muted">${C.esc(tr('Probing…'))}</td></tr>`; if (txt) txt.textContent = tr('One probe per table and RPC against the Supabase project.'); return; }
+  body.innerHTML = results.map(r => `<tr data-probe="${C.esc(r.name)}" class="${r.ok ? 'ok' : 'fail'}"><td><code>${C.esc(r.name)}</code></td><td class="${r.ok ? 'ok' : 'fail'}">${C.esc(r.ok ? tr('OK') : tr('ERROR'))} <span class="muted small">${r.ms} ms</span></td>
+    <td>${r.ok ? (r.name.endsWith('()') ? `<span class="muted">→ ${C.esc(JSON.stringify(r.value))}</span>` : '') : `<pre>${C.esc(r.text)}</pre>`}${r.load && r.load !== 'ok' ? `<div class="small"><b>${C.esc(tr('Last load:'))}</b> <span class="fail">${C.esc(r.load)}</span></div>` : ''}</td></tr>`).join('');
   const failed = results.filter(r => !r.ok).length;
-  const txt = $('diagText'); if (txt) txt.textContent = failed ? `${failed} of ${results.length} probes failed. A missing table means the MIGRATION block at the end of supabase/schema.sql has not been run; "permission denied" means a row-level-security policy.` : `All ${results.length} probes OK.`;
+  if (txt) txt.textContent = failed ? tr('{failed} of {n} probes failed. A missing table means the MIGRATION block at the end of supabase/schema.sql has not been run; "permission denied" means a row-level-security policy.', {failed, n: results.length}) : tr('All {n} probes OK.', {n: results.length});
 }
 export function openDiagnostics() {
   const m = $('diagModal'); if (!m) return; m.hidden = false; render([], true);
@@ -43,6 +45,8 @@ export function openDiagnostics() {
   return lastRun;
 }
 export function closeDiagnostics() { const m = $('diagModal'); if (m) m.hidden = true; }
+/* language changed: re-run so the texts follow (only while the panel is open) */
+export function relabel() { const m = $('diagModal'); if (m && !m.hidden) openDiagnostics(); }
 export function initDiag() {
   const pill = $('syncPill'); if (!pill) return;
   pill.addEventListener('click', () => openDiagnostics());

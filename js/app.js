@@ -1,5 +1,5 @@
 /* ============================================================================
-   app.js — boot, tabs (#hash deep links), header menu (CSV / PDF export), toast, render orchestration.
+   app.js — boot, tabs (#hash deep links), header menu (CSV / PDF export), language switch, toast, render orchestration.
    ============================================================================ */
 import * as C from './calc.js';
 import * as D from './data.js';
@@ -8,13 +8,15 @@ import { renderTracker, initTracker } from './ui-tracker.js';
 import { renderTasks, initTasks } from './ui-tasks.js';
 import { renderOwners, initOwners, invalidateAuthUsers } from './ui-owners.js';
 import { renderReport, initReport, exportCSV, exportPDF } from './ui-report.js';
-import { initDiag } from './ui-diag.js';
+import { initDiag, relabel as relabelDiag } from './ui-diag.js';
+import * as I from './i18n.js';
+import { tr, N_ } from './i18n.js';
 
 export const TABS = [
-  {slug: 'owners', label: 'Owners, roles & setup', panel: 'tab-owners', num: 1},
-  {slug: 'tasks', label: 'Task division — weights', panel: 'tab-tasks', num: 2},
-  {slug: 'tracker', label: 'Monthly ownership tracker', panel: 'tab-tracker', num: 3},
-  {slug: 'report', label: 'Work log & task report', panel: 'tab-report', num: 4}];
+  {slug: 'owners', label: N_('Owners, roles & setup'), panel: 'tab-owners', num: 1},
+  {slug: 'tasks', label: N_('Task division — weights'), panel: 'tab-tasks', num: 2},
+  {slug: 'tracker', label: N_('Monthly ownership tracker'), panel: 'tab-tracker', num: 3},
+  {slug: 'report', label: N_('Work log & task report'), panel: 'tab-report', num: 4}];
 let activeTab = 'tracker', menuOpen = false, bootedDoc = null;
 const $ = id => document.getElementById(id);
 
@@ -42,14 +44,14 @@ export function showNotice(msg) { const n = $('notice'); if (!n) return; n.textC
 export function refreshNotice() {
   if (!A.isSignedIn() || !D.S) { showNotice(''); return; }
   const failed = D.CORE_TABLES.filter(t => D.loadStatus[t]);
-  if (failed.length) { showNotice(`Some data could not be loaded (${failed.join(', ')}) — the tracker may be incomplete. Click the status pill for diagnostics.`); return; }
-  if (!A.owner) { showNotice(`Your account (${A.session.user.email || ''}) is not linked to an owner yet — ask an admin (Owners tab). Everything is read-only.`); return; }
+  if (failed.length) { showNotice(tr('Some data could not be loaded ({tables}) — the tracker may be incomplete. Click the status pill for diagnostics.', {tables: failed.join(', ')})); return; }
+  if (!A.owner) { showNotice(tr('Your account ({email}) is not linked to an owner yet — ask an admin (Owners tab). Everything is read-only.', {email: A.session.user.email || ''})); return; }
   showNotice('');
 }
 
 /* ---------- tabs ---------- */
 export function activeTabSlug() { return activeTab; }
-function renderTabNav() { $('topNav').innerHTML = TABS.map(t => `<a class="tab-link" id="navitem-${t.slug}" href="#${t.slug}" data-slug="${t.slug}"><span class="nav-num">${t.num}</span>${t.label}</a>`).join(''); }
+function renderTabNav() { $('topNav').innerHTML = TABS.map(t => `<a class="tab-link" id="navitem-${t.slug}" href="#${t.slug}" data-slug="${t.slug}"><span class="nav-num">${t.num}</span>${C.esc(tr(t.label))}</a>`).join(''); }
 export function goTab(slug, push) {
   const tab = TABS.find(t => t.slug === slug) || TABS[0]; activeTab = tab.slug;
   TABS.forEach(t => { const p = $(t.panel); if (p) { t.slug === tab.slug ? p.removeAttribute('hidden') : p.setAttribute('hidden', ''); } const it = $('navitem-' + t.slug); if (it) it.classList.toggle('active', t.slug === tab.slug); });
@@ -64,19 +66,29 @@ function setPill(kind, txt) { const p = $('syncPill'); if (!p) return; p.classNa
 /* exactly three states: Live (realtime connected) · Offline (signed out, loading, or not connected) · Load failed (a core table failed) */
 let rtOnline = false;
 export function updatePill() {
-  if (!A.isSignedIn() || !D.S) { setPill('local', 'Offline'); return; }
-  if (D.coreFailed()) { setPill('offline', 'Load failed'); return; }
-  setPill(rtOnline ? 'online' : 'offline', rtOnline ? 'Live' : 'Offline');
+  if (!A.isSignedIn() || !D.S) { setPill('local', tr('Offline')); return; }
+  if (D.coreFailed()) { setPill('offline', tr('Load failed')); return; }
+  setPill(rtOnline ? 'online' : 'offline', rtOnline ? tr('Live') : tr('Offline'));
 }
 
+/* ---------- language (EN / HU) ---------- */
+/* repaint everything that carries text: static markup, tabs, sign-in texts, pill, notice, all four tabs */
+function applyLang() {
+  I.applyStatic(document);
+  renderTabNav(); goTab(activeTab, false);
+  A.relabel(); updatePill(); refreshNotice(); renderAll(); relabelDiag();
+}
+export function setLanguage(l) { I.setLang(l); applyLang(); }
+
 function wireHeader() {
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-lang]'); if (b) setLanguage(b.dataset.lang); });
   $('topNav').addEventListener('click', e => { const a = e.target.closest('a[data-slug]'); if (!a) return; e.preventDefault(); goTab(a.dataset.slug, true); });
   $('menuBtn').addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
   $('navMenu').addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b) return; closeMenu();
     switch (b.dataset.act) {
-      case 'exportCsv': if (D.S) exportCSV(); else toast('Sign in first.', 'err'); break;
-      case 'exportPdf': if (D.S) exportPDF(); else toast('Sign in first.', 'err'); break;
+      case 'exportCsv': if (D.S) exportCSV(); else toast(tr('Sign in first.'), 'err'); break;
+      case 'exportPdf': if (D.S) exportPDF(); else toast(tr('Sign in first.'), 'err'); break;
     }
   });
   document.addEventListener('click', e => { if (menuOpen && !e.target.closest('.menu-wrap')) closeMenu(); });
@@ -90,6 +102,7 @@ function wireHeader() {
 export async function boot(opts = {}) {
   if (bootedDoc) await D.reset();                       // booted before (tests): start from a clean slate
   if (opts.client) D.setClient(opts.client);
+  I.initLang();                                         // saved choice, else the browser language
   if (bootedDoc !== document) {
     bootedDoc = document;
     renderTabNav(); wireHeader(); initTracker(); initTasks(); initOwners(); initReport(); initDiag();
@@ -99,10 +112,11 @@ export async function boot(opts = {}) {
       else if (ev.type === 'error') { toast(ev.message, 'err'); }
     });
   }
+  applyLang();
   goTab(tabFromHash(), false);
   let sb;
   try { sb = await D.getClient(); }
-  catch (e) { console.error(e); updatePill(); toast('Could not load the Supabase client — check your connection and reload.', 'err'); return; }
+  catch (e) { console.error(e); updatePill(); toast(tr('Could not load the Supabase client — check your connection and reload.'), 'err'); return; }
   updatePill();
   await A.initAuth(sb, {
     onSignedIn: async () => {
@@ -112,7 +126,7 @@ export async function boot(opts = {}) {
     },
     onSignedOut: () => { D.unsubscribeRealtime(); rtOnline = false; D.clearState(); clearUi(); updatePill(); },
     onToast: toast,
-    onError: e => { updatePill(); toast('Could not load the data: ' + (e.message || e), 'err'); },
+    onError: e => { updatePill(); toast(tr('Could not load the data: {msg}', {msg: e.message || e}), 'err'); },
   });
   updatePill();
 }

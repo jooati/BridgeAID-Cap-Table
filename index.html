@@ -10,23 +10,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="locked">
+<!-- Text marked data-i18n is translated by js/i18n.js: data-i18n="key" → HU_HTML[key]; empty data-i18n → the English text is the key. -->
 <header class="topbar">
   <a class="brand" href="#tracker"><img class="brand-logo" alt="BridgeAID" src="assets/logo.png"></a>
   <nav class="topnav" id="topNav" aria-label="Sections"></nav>
-  <button id="syncPill" type="button" class="pill local" title="Connection to the shared database — click for diagnostics"><span class="dot"></span>Offline</button>
+  <button id="syncPill" type="button" class="pill local" title="Connection to the shared database — click for diagnostics" data-i18n-title><span class="dot"></span>Offline</button>
+  <div class="lang-sw" role="group" aria-label="Language / Nyelv"><button type="button" data-lang="en" title="English">EN</button><button type="button" data-lang="hu" title="Magyar">HU</button></div>
   <div class="acct-wrap">
-    <button id="loginBtn" class="btn-ghost login" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" title="Sign in"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="loginLbl">Sign in</span><span id="adminBadge" class="badge" hidden>admin</span></button>
+    <button id="loginBtn" class="btn-ghost login" aria-haspopup="true" aria-expanded="false" aria-controls="accountMenu" title="Sign in"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="loginLbl">Sign in</span><span id="adminBadge" class="badge" hidden data-i18n>admin</span></button>
     <div id="accountMenu" class="account-menu" role="menu" hidden>
-      <div class="who-line">Signed in as <b id="acctName"></b><span id="acctEmail"></span></div>
-      <button class="nav-item" role="menuitem" data-act="changePassword">Change password</button>
-      <button class="nav-item" role="menuitem" data-act="signOut">Sign out</button>
+      <div class="who-line"><span data-i18n>Signed in as</span> <b id="acctName"></b><span id="acctEmail"></span></div>
+      <button class="nav-item" role="menuitem" data-act="changePassword" data-i18n>Change password</button>
+      <button class="nav-item" role="menuitem" data-act="signOut" data-i18n>Sign out</button>
     </div>
   </div>
   <div class="menu-wrap">
-    <button id="menuBtn" class="hamburger" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="bars" aria-hidden="true"><span></span><span></span><span></span></span><span class="menu-label">Menu</span></button>
+    <button id="menuBtn" class="hamburger" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="bars" aria-hidden="true"><span></span><span></span><span></span></span><span class="menu-label" data-i18n>Menu</span></button>
     <div id="navMenu" class="nav-menu" role="menu" hidden>
-      <button class="nav-item" role="menuitem" data-act="exportCsv">Export CSV (all data)</button>
-      <button class="nav-item" role="menuitem" data-act="exportPdf">Export PDF (monthly pages)</button>
+      <button class="nav-item" role="menuitem" data-act="exportCsv" data-i18n>Export CSV (all data)</button>
+      <button class="nav-item" role="menuitem" data-act="exportPdf" data-i18n>Export PDF (monthly pages)</button>
     </div>
   </div>
 </header>
@@ -36,25 +38,26 @@
 <!-- Connection diagnostics (click the status pill) -->
 <div id="diagModal" class="modal-back" hidden>
   <div class="modal diag" role="dialog" aria-labelledby="diagTitle">
-    <h2 id="diagTitle">Connection diagnostics</h2>
+    <h2 id="diagTitle" data-i18n>Connection diagnostics</h2>
     <p id="diagText">One probe per table and RPC against the Supabase project.</p>
-    <table class="rp"><thead><tr><th>Probe</th><th>Result</th><th>Details</th></tr></thead><tbody id="diagBody"></tbody></table>
-    <div class="actions"><button type="button" id="diagRun" class="btn-gold">Run again</button><button type="button" id="diagClose" class="btn-quiet">Close</button></div>
+    <table class="rp"><thead><tr><th data-i18n>Probe</th><th data-i18n>Result</th><th data-i18n>Details</th></tr></thead><tbody id="diagBody"></tbody></table>
+    <div class="actions"><button type="button" id="diagRun" class="btn-gold" data-i18n>Run again</button><button type="button" id="diagClose" class="btn-quiet" data-i18n>Close</button></div>
   </div>
 </div>
 
 <!-- Sign in / forgot password / set new password / change password -->
 <div id="authModal" class="modal-back" hidden>
   <form id="authForm" class="modal" autocomplete="on">
-    <div class="brandline"><img src="assets/logo.png" alt=""><div><h2 id="authTitle">Sign in</h2></div></div>
+    <div class="brandline"><img src="assets/logo.png" alt=""><div><h2 id="authTitle">Sign in</h2></div>
+      <div class="lang-sw" role="group" aria-label="Language / Nyelv"><button type="button" data-lang="en" title="English">EN</button><button type="button" data-lang="hu" title="Magyar">HU</button></div></div>
     <p id="authText">BridgeAID Monthly Ownership Tracker — owners only.</p>
-    <div id="authEmailRow"><label for="authEmail">Email</label><input id="authEmail" name="email" type="email" required autocomplete="username"></div>
-    <div id="authPwRow"><label for="authPw">Password</label><input id="authPw" name="password" type="password" autocomplete="current-password"></div>
-    <div id="authPw2Row" hidden><label for="authPw2">Repeat new password</label><input id="authPw2" name="password2" type="password" autocomplete="new-password"></div>
+    <div id="authEmailRow"><label for="authEmail" data-i18n>Email</label><input id="authEmail" name="email" type="email" required autocomplete="username"></div>
+    <div id="authPwRow"><label for="authPw" data-i18n>Password</label><input id="authPw" name="password" type="password" autocomplete="current-password"></div>
+    <div id="authPw2Row" hidden><label for="authPw2" data-i18n>Repeat new password</label><input id="authPw2" name="password2" type="password" autocomplete="new-password"></div>
     <div id="authErr" class="err"></div>
     <div class="actions">
       <button type="submit" id="authSubmit" class="btn-gold">Sign in</button>
-      <button type="button" id="authCancel" class="btn-quiet" hidden>Cancel</button>
+      <button type="button" id="authCancel" class="btn-quiet" hidden data-i18n>Cancel</button>
       <button type="button" id="authForgot" class="link">Forgot password?</button>
     </div>
   </form>
@@ -62,76 +65,76 @@
 
 <main id="capture">
   <section class="card tab-panel" id="tab-tracker" hidden>
-    <div class="card-head"><h2>Monthly ownership tracker</h2>
+    <div class="card-head"><h2 data-i18n>Monthly ownership tracker</h2>
       <div class="intro">
-        <p><b>Purpose.</b> This table tracks how equity changes over time. Work done <b>without</b> pay counts toward equity; paid work does not. For example, COO activity performed without a salary counts toward equity; and on a low-value project, engineering work done without a salary counts as well.</p>
-        <p><b>Preparation 1 — tasks and weights.</b> The second menu tab lists the tasks in two main groups, <i>operations</i> and <i>projects</i>, each with a weight. The tasks and their weights must be agreed between the owners; more can be added when needed.</p>
-        <p><b>Preparation 2 — baseline and salaries.</b> The equity baseline is already defined. The base salaries per role must be agreed; they are treated as industry standards and mean gross monthly salary for 160 hours.</p>
-        <p><b>Graph.</b> Baseline ownership vs. current cumulative equity share.</p>
-        <p><b>Table.</b> Rows are owners; columns are periods, newest first, ending with the incubator programs and the IP contribution — the two periods before the company was established.</p>
-        <p><b>Each month, every owner:</b></p>
+        <p data-i18n="intro.p1"><b>Purpose.</b> This table tracks how equity changes over time. Work done <b>without</b> pay counts toward equity; paid work does not. For example, COO activity performed without a salary counts toward equity; and on a low-value project, engineering work done without a salary counts as well.</p>
+        <p data-i18n="intro.p2"><b>Preparation 1 — tasks and weights.</b> The second menu tab lists the tasks in two main groups, <i>operations</i> and <i>projects</i>, each with a weight. The tasks and their weights must be agreed between the owners; more can be added when needed.</p>
+        <p data-i18n="intro.p3"><b>Preparation 2 — baseline and salaries.</b> The equity baseline is already defined. The base salaries per role must be agreed; they are treated as industry standards and mean gross monthly salary for 160 hours.</p>
+        <p data-i18n="intro.p4"><b>Graph.</b> Baseline ownership vs. current cumulative equity share.</p>
+        <p data-i18n="intro.p5"><b>Table.</b> Rows are owners; columns are periods, newest first, ending with the incubator programs and the IP contribution — the two periods before the company was established.</p>
+        <p data-i18n="intro.each"><b>Each month, every owner:</b></p>
         <ul>
-          <li>logs the tasks worked on with the hours — start typing a task name from the second tab; the average weight of the logged tasks is calculated automatically;</li>
-          <li>selects their role and logs the gross salary received that month — the paid hours are calculated from the role's base salary (160 hours) and multiplied by the same average task weight, so both sides use the same weights;</li>
-          <li>the hours that count toward equity = task hours − paid hours (both weighted);</li>
-          <li>that figure is compared across all owners in the column, and this is what shifts the equity ratio;</li>
-          <li>approves the month once the data is complete — every owner approves the whole month (everyone's cards), so the equity ratio is always based on approved, actual work, with no forecasting.</li>
+          <li data-i18n="intro.li1">logs the tasks worked on with the hours — start typing a task name from the second tab; the average weight of the logged tasks is calculated automatically;</li>
+          <li data-i18n="intro.li2">selects their role and logs the gross salary received that month — the paid hours are calculated from the role's base salary (160 hours) and multiplied by the same average task weight, so both sides use the same weights;</li>
+          <li data-i18n="intro.li3">the hours that count toward equity = task hours − paid hours (both weighted);</li>
+          <li data-i18n="intro.li4">that figure is compared across all owners in the column, and this is what shifts the equity ratio;</li>
+          <li data-i18n="intro.li5">approves the month once the data is complete — every owner approves the whole month (everyone's cards), so the equity ratio is always based on approved, actual work, with no forecasting.</li>
         </ul>
       </div></div>
     <div class="card-body">
       <div class="sharebars" id="bars"></div>
       <div class="tracker-tools" id="trackerTools">
-        <button class="btn-gold btn-small admin-only" data-act="addMonth">+ Add month</button>
-        <button class="btn-quiet btn-small" data-act="collapseOlder">Collapse all but current</button>
-        <button class="btn-quiet btn-small" data-act="expandAll">Expand all</button>
-        <span class="lg">◀ collapses a column · ▶ expands it</span>
+        <button class="btn-gold btn-small admin-only" data-act="addMonth" data-i18n>+ Add month</button>
+        <button class="btn-quiet btn-small" data-act="collapseOlder" data-i18n>Collapse all but current</button>
+        <button class="btn-quiet btn-small" data-act="expandAll" data-i18n>Expand all</button>
+        <span class="lg" data-i18n>◀ collapses a column · ▶ expands it</span>
       </div>
       <div class="tscroll"><table class="tracker" id="trackerTable"></table></div>
     </div>
   </section>
   <section class="card tab-panel" id="tab-tasks" hidden>
-    <div class="card-head"><h2>Task division — weights</h2><p>Relative weight of every task. Weights are snapshotted into an entry when it is logged: changing one here affects new entries only.</p></div>
+    <div class="card-head"><h2 data-i18n>Task division — weights</h2><p data-i18n="tasks.lead">Relative weight of every task. Weights are snapshotted into an entry when it is logged: changing one here affects new entries only.</p></div>
     <div class="card-body" id="taskSection"></div>
   </section>
   <section class="card tab-panel" id="tab-report" hidden>
-    <div class="card-head"><h2>Work log &amp; task report</h2>
-      <p>Where the time goes. See the logged work per person or per task, and the payments per person — to spot the tasks that consume the most hours and are candidates for automation.</p></div>
+    <div class="card-head"><h2 data-i18n>Work log &amp; task report</h2>
+      <p data-i18n="report.lead">Where the time goes. See the logged work per person or per task, and the payments per person — to spot the tasks that consume the most hours and are candidates for automation.</p></div>
     <div class="card-body">
       <div class="rp-tools" id="rpTools">
         <div class="seg-btns" role="tablist">
-          <button class="segb active" data-view="task" data-act="setReportView">By task</button>
-          <button class="segb" data-view="person" data-act="setReportView">By person</button>
-          <button class="segb" data-view="pay" data-act="setReportView">Payments</button>
+          <button class="segb active" data-view="task" data-act="setReportView" data-i18n>By task</button>
+          <button class="segb" data-view="person" data-act="setReportView" data-i18n>By person</button>
+          <button class="segb" data-view="pay" data-act="setReportView" data-i18n>Payments</button>
         </div>
-        <label class="rp-filter">Period <select id="rpPeriod"></select></label>
-        <label class="rp-filter">Owner <select id="rpOwner"></select></label>
-        <button class="btn-quiet btn-small" data-act="exportWorklogCsv">Export work log CSV</button>
-        <button class="btn-quiet btn-small" data-act="exportAuditCsv">Export audit CSV</button>
+        <label class="rp-filter"><span data-i18n>Period</span> <select id="rpPeriod"></select></label>
+        <label class="rp-filter"><span data-i18n>Owner</span> <select id="rpOwner"></select></label>
+        <button class="btn-quiet btn-small" data-act="exportWorklogCsv" data-i18n>Export work log CSV</button>
+        <button class="btn-quiet btn-small" data-act="exportAuditCsv" data-i18n>Export audit CSV</button>
       </div>
       <div id="reportBody"></div>
-      <h3 class="sub">Audit log</h3>
-      <p class="note" style="margin:0 0 8px">Every change to the shared data, newest first — who changed what, and when.</p>
+      <h3 class="sub" data-i18n>Audit log</h3>
+      <p class="note" style="margin:0 0 8px" data-i18n="audit.lead">Every change to the shared data, newest first — who changed what, and when.</p>
       <div class="rp-tools" id="auTools">
-        <label class="rp-filter">Period <select id="auPeriod"></select></label>
-        <label class="rp-filter">Owner <select id="auOwner"></select></label>
-        <label class="rp-filter">Table <select id="auTable"></select></label>
+        <label class="rp-filter"><span data-i18n>Period</span> <select id="auPeriod"></select></label>
+        <label class="rp-filter"><span data-i18n>Owner</span> <select id="auOwner"></select></label>
+        <label class="rp-filter"><span data-i18n>Table</span> <select id="auTable"></select></label>
         <span class="lg" id="auCount"></span>
       </div>
       <div id="auditBody" class="audit"></div>
     </div>
   </section>
   <section class="card tab-panel" id="tab-owners" hidden>
-    <div class="card-head"><h2>Owners, roles &amp; setup</h2><p>Owners appear as rows A–Z. Role market salaries are monthly gross for <b>160 hours</b>; entered in HUF and converted with the rate below.</p></div>
+    <div class="card-head"><h2 data-i18n>Owners, roles &amp; setup</h2><p data-i18n="owners.lead">Owners appear as rows A–Z. Role market salaries are monthly gross for <b>160 hours</b>; entered in HUF and converted with the rate below.</p></div>
     <div class="card-body" id="ownersBody">
-      <p class="role-note" id="roleNote" hidden>Master data is maintained by the admins — shown read-only.</p>
-      <h3 class="sub" style="margin-top:0">Role market salaries (monthly gross, 160 h) — versioned by month</h3>
-      <p class="note" style="margin:0 0 8px">Each table is effective from its month until the next table starts. A month's cards always use the table in force for that month, so inflation adjustments or a new EUR rate apply from the chosen month onward without touching earlier periods.</p>
-      <div class="tracker-tools"><button class="btn-gold btn-small admin-only" data-act="addSalaryTable">+ New salary table</button><button class="btn-quiet btn-small" data-act="collapseOlderTables">Collapse all but current</button><button class="btn-quiet btn-small" data-act="expandAllTables">Expand all</button><button class="btn-quiet btn-small admin-only" data-act="addRole">+ Add role</button></div>
+      <p class="role-note" id="roleNote" hidden data-i18n>Master data is maintained by the admins — shown read-only.</p>
+      <h3 class="sub" style="margin-top:0" data-i18n>Role market salaries (monthly gross, 160 h) — versioned by month</h3>
+      <p class="note" style="margin:0 0 8px" data-i18n="owners.tablesNote">Each table is effective from its month until the next table starts. A month's cards always use the table in force for that month, so inflation adjustments or a new EUR rate apply from the chosen month onward without touching earlier periods.</p>
+      <div class="tracker-tools"><button class="btn-gold btn-small admin-only" data-act="addSalaryTable" data-i18n>+ New salary table</button><button class="btn-quiet btn-small" data-act="collapseOlderTables" data-i18n>Collapse all but current</button><button class="btn-quiet btn-small" data-act="expandAllTables" data-i18n>Expand all</button><button class="btn-quiet btn-small admin-only" data-act="addRole" data-i18n>+ Add role</button></div>
       <div class="tscroll"><table class="tracker" id="salaryTables"></table></div>
-      <p class="note">A card's paid hours = salary (EUR) ÷ role market salary (EUR, from the table in force) × 160. Those hours earn no equity.</p>
-      <h3 class="sub">Owners <span class="muted small" id="ownersHint">— baseline, and (admins) the link to the sign-in account</span></h3>
+      <p class="note" data-i18n="owners.paidNote">A card's paid hours = salary (EUR) ÷ role market salary (EUR, from the table in force) × 160. Those hours earn no equity.</p>
+      <h3 class="sub"><span data-i18n>Owners</span> <span class="muted small" id="ownersHint" data-i18n>— baseline, and (admins) the link to the sign-in account</span></h3>
       <div id="ownerList"></div>
-      <button class="btn-quiet admin-only" style="margin-top:10px" data-act="addOwner">+ Add owner</button>
+      <button class="btn-quiet admin-only" style="margin-top:10px" data-act="addOwner" data-i18n>+ Add owner</button>
     </div>
   </section>
 </main>

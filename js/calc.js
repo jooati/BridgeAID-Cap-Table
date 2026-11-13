@@ -18,6 +18,8 @@
      cumulative = running Σ equity in chronological order (ip → incub → months)
    ============================================================================ */
 
+import { tr } from './i18n.js';   // pure dictionary lookup — still no DOM, no I/O
+
 export const HOURS_PER_MONTH = 160;
 export const DEFAULT_FX = 400;
 export const START_YM = '2025-12';
@@ -90,10 +92,10 @@ export function colFinal(S, row) { return S.owners.length > 0 && S.owners.every(
 /* who ticked an owner's approval: the owner id, an admin's id, or null */
 export function approvedBy(row, oid) { const v = row.approvals[oid]; return v ? (typeof v === 'string' ? v : oid) : null; }
 /* 'Approved' | 'Approved by <admin>' | '' */
-export function approvalLabel(S, row, oid) { const by = approvedBy(row, oid); return !by ? '' : (by === oid ? 'Approved' : `Approved by ${ownerName(S, by)}`); }
+export function approvalLabel(S, row, oid) { const by = approvedBy(row, oid); return !by ? '' : (by === oid ? tr('Approved') : tr('Approved by {name}', {name: ownerName(S, by)})); }
 export function colStatus(S, row) {
   const n = colApproved(S, row), N = S.owners.length, fin = colFinal(S, row), needs = row.audit.needsReapproval;
-  return {n, N, fin, needs, cls: fin ? 'final' : (needs ? 'needs' : ''), txt: fin ? 'Finalised' : (needs ? 'Re-approval needed' : (n ? `Approved ${n}/${N}` : 'Pending'))};
+  return {n, N, fin, needs, cls: fin ? 'final' : (needs ? 'needs' : ''), txt: fin ? tr('Finalised') : (needs ? tr('Re-approval needed') : (n ? tr('Approved {n}/{N}', {n, N}) : tr('Pending')))};
 }
 
 /* ---------- CALCULATION ---------- */
@@ -126,7 +128,7 @@ export function worklogRows(S) {
   const rows = [];
   chronoRows(S).forEach(r => sortedOwners(S).forEach(o => {
     const c = r.cells[o.id]; if (!c) return;
-    (c.entries || []).forEach(e => { const t = taskById(S, e.taskId); rows.push({period: r, owner: o, task: t || {id: e.taskId, name: e.taskName || '(removed task)', cat: '', group: ''}, hours: +e.hours || 0, weight: +e.weight || 0}); });
+    (c.entries || []).forEach(e => { const t = taskById(S, e.taskId); rows.push({period: r, owner: o, task: t || {id: e.taskId, name: e.taskName || tr('(removed task)'), cat: '', group: ''}, hours: +e.hours || 0, weight: +e.weight || 0}); });
   }));
   return rows;
 }

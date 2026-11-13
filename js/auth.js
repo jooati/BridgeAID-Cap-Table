@@ -4,6 +4,7 @@
    The modal is the only thing an unauthenticated visitor sees (body.locked hides <main>).
    ============================================================================ */
 import * as D from './data.js';
+import { tr, N_ } from './i18n.js';
 
 export let session = null;   // supabase session or null
 export let owner = null;     // the owners row linked to the signed-in user (null = not linked)
@@ -32,7 +33,7 @@ export function resolveOwner() {
 export function reset() { session = null; owner = null; isAdmin = false; loadedUser = null; loading = null; menuOpen = false; mode = 'signin'; }
 export async function initAuth(client, h) {
   sb = client; handlers = h || {}; reset();
-  wireUi();
+  wireUi(); refreshButton();
   const recovery = /type=recovery/.test(window.location.hash) || /type=recovery/.test(window.location.search);
   sb.auth.onAuthStateChange((event, sess) => {
     if (event === 'PASSWORD_RECOVERY') { session = sess; showModal('recovery'); return; }
@@ -80,19 +81,27 @@ export async function changePassword(password) { const {error} = await sb.auth.u
 
 /* ---------- modal ---------- */
 const MODES = {
-  signin:   {title: 'Sign in', text: 'BridgeAID Monthly Ownership Tracker — owners only.', email: true, pw: true, pw2: false, submit: 'Sign in', link: 'Forgot password?', cancel: false},
-  forgot:   {title: 'Reset password', text: 'We email you a link; open it and choose a new password.', email: true, pw: false, pw2: false, submit: 'Send reset link', link: 'Back to sign in', cancel: false},
-  recovery: {title: 'Set new password', text: 'Choose a new password for your account (at least 8 characters).', email: false, pw: true, pw2: true, submit: 'Save password', link: '', cancel: false},
-  change:   {title: 'Change password', text: 'Choose a new password (at least 8 characters).', email: false, pw: true, pw2: true, submit: 'Save password', link: '', cancel: true},
+  signin:   {title: N_('Sign in'), text: N_('BridgeAID Monthly Ownership Tracker — owners only.'), email: true, pw: true, pw2: false, submit: N_('Sign in'), link: N_('Forgot password?'), cancel: false},
+  forgot:   {title: N_('Reset password'), text: N_('We email you a link; open it and choose a new password.'), email: true, pw: false, pw2: false, submit: N_('Send reset link'), link: N_('Back to sign in'), cancel: false},
+  recovery: {title: N_('Set new password'), text: N_('Choose a new password for your account (at least 8 characters).'), email: false, pw: true, pw2: true, submit: N_('Save password'), link: '', cancel: false},
+  change:   {title: N_('Change password'), text: N_('Choose a new password (at least 8 characters).'), email: false, pw: true, pw2: true, submit: N_('Save password'), link: '', cancel: true},
 };
 export function currentMode() { return mode; }
+/* the texts of the current mode, in the current language */
+function paintModal() {
+  const cfg = MODES[mode]; if (!$('authTitle')) return;
+  $('authTitle').textContent = tr(cfg.title); $('authText').textContent = tr(cfg.text);
+  $('authSubmit').textContent = tr(cfg.submit); $('authForgot').textContent = cfg.link ? tr(cfg.link) : '';
+}
+/* the language changed */
+export function relabel() { paintModal(); refreshButton(); }
 export function showModal(m) {
   mode = m; const cfg = MODES[m]; const back = $('authModal'); if (!back) return;
-  $('authTitle').textContent = cfg.title; $('authText').textContent = cfg.text;
+  paintModal();
   $('authEmailRow').hidden = !cfg.email; $('authPwRow').hidden = !cfg.pw; $('authPw2Row').hidden = !cfg.pw2;
   $('authPw').autocomplete = cfg.pw2 ? 'new-password' : 'current-password'; $('authPw').required = cfg.pw; $('authPw2').required = cfg.pw2; $('authEmail').required = cfg.email;
   $('authPw').value = ''; $('authPw2').value = ''; $('authErr').textContent = '';
-  $('authSubmit').textContent = cfg.submit; $('authForgot').textContent = cfg.link; $('authForgot').hidden = !cfg.link; $('authCancel').hidden = !cfg.cancel;
+  $('authForgot').hidden = !cfg.link; $('authCancel').hidden = !cfg.cancel;
   back.hidden = false;
   const first = cfg.email ? $('authEmail') : $('authPw'); if (first && first.focus) setTimeout(() => first.focus(), 0);
 }
@@ -106,24 +115,24 @@ async function submit(e) {
   const btn = $('authSubmit'); btn.disabled = true;
   try {
     if (mode === 'signin') { await signIn(email, pw); }
-    else if (mode === 'forgot') { await forgotPassword(email); err.style.color = ''; $('authText').textContent = `Reset link sent to ${email} — check your inbox.`; }
-    else { if (pw.length < 8) throw new Error('The password must be at least 8 characters.'); if (pw !== pw2) throw new Error('The two passwords differ.');
+    else if (mode === 'forgot') { await forgotPassword(email); err.style.color = ''; $('authText').textContent = tr('Reset link sent to {email} — check your inbox.', {email}); }
+    else { if (pw.length < 8) throw new Error(tr('The password must be at least 8 characters.')); if (pw !== pw2) throw new Error(tr('The two passwords differ.'));
       await changePassword(pw); hideModal();
       if (mode === 'recovery') { try { window.history.replaceState(null, '', window.location.pathname + '#tracker'); } catch (e2) { /* ignore */ } }
-      if (handlers.onToast) handlers.onToast('Password saved.', 'ok');
+      if (handlers.onToast) handlers.onToast(tr('Password saved.'), 'ok');
       if (!session) showModal('signin'); }
-  } catch (ex) { err.textContent = ex.message || String(ex); }
+  } catch (ex) { err.textContent = tr(ex.message || String(ex)); }   // known Supabase messages are in the dictionary
   finally { btn.disabled = false; }
 }
 
 /* ---------- header button + account menu ---------- */
 export function refreshButton() {
   const lbl = $('loginLbl'), badge = $('adminBadge'), btn = $('loginBtn'); if (!lbl) return;
-  lbl.textContent = owner ? owner.name : (session ? (session.user.email || 'Signed in') : 'Sign in');
+  lbl.textContent = owner ? owner.name : (session ? (session.user.email || tr('Signed in')) : tr('Sign in'));
   badge.hidden = !isAdmin; btn.classList.toggle('signed', !!session);
   const email = session ? (session.user.email || '') : '';
-  btn.title = !session ? 'Sign in' : (owner ? `${owner.name} · ${email}` : email);   // the name is the identity; the email lives in the tooltip
-  if ($('acctName')) { $('acctName').textContent = owner ? owner.name : 'not linked to an owner'; $('acctEmail').textContent = session ? session.user.email || '' : ''; }
+  btn.title = !session ? tr('Sign in') : (owner ? `${owner.name} · ${email}` : email);   // the name is the identity; the email lives in the tooltip
+  if ($('acctName')) { $('acctName').textContent = owner ? owner.name : tr('not linked to an owner'); $('acctEmail').textContent = session ? session.user.email || '' : ''; }
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !isAdmin);
 }
 function openAccountMenu() { menuOpen = true; $('accountMenu').hidden = false; $('loginBtn').setAttribute('aria-expanded', 'true'); }
