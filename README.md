@@ -40,7 +40,8 @@ The calculation (in `js/calc.js`) is unchanged from the single-file version — 
   roles, salary table, task catalog and the periods).
 * Project that already has the schema: paste only the **MIGRATION** block at the end of `schema.sql` (idempotent, keeps all
   data): the `list_auth_users()` RPC, the refined approval-reset trigger, `approvals.approved_by` with its policy, and the
-  `audit_log` table with its triggers and Realtime publication.
+  `audit_log` table with its triggers and Realtime publication, and the ledger guard (`guard_entry_snapshot`: the weight
+  snapshot of an entry is set by the database; owners may change only the hours of a logged entry).
 
 ## Adding a user
 

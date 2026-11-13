@@ -47,7 +47,7 @@ Salary table in force = latest table with effective_from ≤ period month (fallb
 - 7 default owners always exist; **HB is `sort_last` and appears last in every list**; others A–Z (hu collation).
 - Months 2025-12 → 2026-09 always exist; admins add later months one at a time.
 - Baseline: JAL/KÁ/KD/SZB 16.67, KB/VI 16.66, HB 0 → sums to 100.00.
-- Weight snapshot: editing a task weight affects **new** entries only.
+- Weight snapshot: editing a task weight affects **new** entries only. The DB sets the snapshot itself (`guard_entry_snapshot` trigger): an owner cannot choose it on insert and may only change the hours afterwards; admins may correct it.
 - Approval = whole period. DB trigger clears **all** approvals on any entries/salaries change. Final = every owner approved. Finalised periods are read-only until an admin reopens.
 - Money: `€1,234,567.89`; percentages 2 decimals; hours 1 decimal.
 

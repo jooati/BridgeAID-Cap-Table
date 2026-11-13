@@ -281,6 +281,9 @@ export const HU = {
   'nothing was saved (no permission, or the row no longer exists)': 'semmi sem lett elmentve (nincs jogosultság, vagy a sor már nem létezik)',
   'Could not load {table}: {msg}': 'Nem sikerült betölteni: {table} — {msg}',
   'There is already a table starting that month.': 'Már van olyan tábla, amely abban a hónapban kezdődik.',
+  /* raised by the database (guard_entry_snapshot) */
+  'only an admin may change the task or the weight snapshot of a logged entry': 'rögzített bejegyzés feladatát vagy eltárolt súlyát csak admin módosíthatja',
+  'an entry must reference a task of the catalog': 'a bejegyzésnek a katalógus egyik feladatára kell hivatkoznia',
 };
 
 /* static markup with inline tags (index.html, data-i18n="key") */

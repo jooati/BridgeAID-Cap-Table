@@ -120,7 +120,7 @@ create trigger entries_reset  after insert or update or delete on entries  for e
 create trigger salaries_reset after insert or update or delete on salaries for each row execute function reset_period_approvals();
 
 -- When the last owner approves, clear the flag.
-create function clear_reapproval_when_complete() returns trigger language plpgsql security definer as $$
+create or replace function clear_reapproval_when_complete() returns trigger language plpgsql security definer as $$
 begin
   if period_is_final(new.period_id) then update periods set needs_reapproval = false where id = new.period_id; end if;
   return new;
@@ -157,7 +157,7 @@ create policy salaries_own on salaries for all to authenticated
 
 -- approvals: your own tick, or an admin on anybody's behalf; admins may clear any (reopen)
 create policy approvals_own_ins on approvals for insert to authenticated with check (owner_id = my_owner_id() or is_admin());
-create function default_approved_by() returns trigger language plpgsql security definer as $$
+create or replace function default_approved_by() returns trigger language plpgsql security definer as $$
 begin if new.approved_by is null then new.approved_by := coalesce(my_owner_id(), new.owner_id); end if; return new; end $$;
 create trigger approvals_by before insert on approvals for each row execute function default_approved_by();
 create policy approvals_own_del on approvals for delete to authenticated using (owner_id = my_owner_id() or is_admin());
@@ -355,3 +355,25 @@ do $$ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'audit_log') then
     alter publication supabase_realtime add table audit_log;
   end if; end $$;
+
+-- ---- ledger guard: the weight snapshot of an entry is set by the server, never by the client ----
+-- Owners: on insert the snapshot and the task name are copied from the task catalog; afterwards they may
+-- change the hours only. Admins and trusted contexts (service role, SQL editor: no end-user JWT) are not restricted.
+create or replace function guard_entry_snapshot() returns trigger language plpgsql security definer set search_path = public as $$
+declare t tasks%rowtype;
+begin
+  if auth.uid() is null or is_admin() then return new; end if;
+  if tg_op = 'INSERT' then
+    select * into t from tasks where id = new.task_id;
+    if not found then raise exception 'an entry must reference a task of the catalog' using errcode = '23514'; end if;
+    new.weight_snapshot := t.weight; new.task_name := t.name;
+    return new;
+  end if;
+  if new.weight_snapshot is distinct from old.weight_snapshot or new.task_id is distinct from old.task_id or new.task_name is distinct from old.task_name
+     or new.period_id is distinct from old.period_id or new.owner_id is distinct from old.owner_id then
+    raise exception 'only an admin may change the task or the weight snapshot of a logged entry' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists entries_guard on entries;
+create trigger entries_guard before insert or update on entries for each row execute function guard_entry_snapshot();

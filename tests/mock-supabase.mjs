@@ -48,6 +48,7 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
   const uid = () => auth._session ? auth._session.user.id : null;
   const myOwner = () => { const id = uid(); return id ? db.owners.find(o => o.auth_uid === id) : null; };
   const isAdmin = () => !!(myOwner() && myOwner().is_admin);
+  const privileged = () => service || !uid() || isAdmin();      // guard_entry_snapshot(): who may set the ledger columns
   const periodFinal = pid => db.approvals.filter(a => a.period_id === pid).length === db.owners.length && db.owners.length > 0;
 
   /* ---- triggers ---- */
@@ -108,6 +109,9 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
           const row = {...src};
           if (SERIAL[t] && row[SERIAL[t]] == null) row[SERIAL[t]] = ++seq[t];
           const err = rlsCheck(t, 'insert', row); if (err) return {data: null, error: {message: err}};
+          if (t === 'entries' && !privileged() && !rows.some(r => this._pk(r) === this._pk(row))) {            // BEFORE INSERT: snapshot from the catalog
+            const task = db.tasks.find(x => x.id === row.task_id); if (!task) return {data: null, error: {message: 'an entry must reference a task of the catalog', code: '23514'}};
+            row.weight_snapshot = task.weight; row.task_name = task.name; }
           const existing = rows.find(r => this._pk(r) === this._pk(row));
           if (existing) { if (this.op === 'insert') return {data: null, error: {message: 'duplicate key value violates unique constraint', code: '23505'}}; const before = clone(existing); Object.assign(existing, row); out.push(existing); logAudit('update', t, before, existing); }
           else { if (t === 'salary_tables' && rows.some(r => r.effective_from === row.effective_from && r.id !== row.id)) { const ex = rows.find(r => r.effective_from === row.effective_from); if (this.op === 'upsert') { Object.assign(ex, row, {id: ex.id}); out.push(ex); continue; } return {data: null, error: {message: 'duplicate key value violates unique constraint "salary_tables_effective_from_key"'}}; }
@@ -121,6 +125,9 @@ export function createMockSupabase({tables = {}, users = [], session = null, ser
         return fin(out);
       }
       if (this.op === 'update') {
+        if (t === 'entries' && !privileged()) {                                                              // BEFORE UPDATE: owners change hours only
+          const prot = ['weight_snapshot', 'task_id', 'task_name', 'period_id', 'owner_id'];
+          if (matches().some(r => prot.some(k => k in this.payload && !same(this.payload[k], r[k])))) return {data: null, error: {message: 'only an admin may change the task or the weight snapshot of a logged entry', code: '42501'}}; }
         const ms = matches().filter(r => !rlsCheck(t, 'update', r)); ms.forEach(r => { const before = clone(r); Object.assign(r, this.payload); logAudit('update', t, before, r); });
         ms.forEach(r => { if (t === 'entries' || t === 'salaries') afterCardChange(r.period_id); });
         writes.push({table: t, op: 'update', rows: clone(ms), patch: clone(this.payload)}); if (rt.auto && ms.length) setTimeout(() => rt.emit(t, {eventType: 'UPDATE'}), 0);

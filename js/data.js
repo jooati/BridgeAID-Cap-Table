@@ -158,7 +158,7 @@ function write(label, fn, slice, mustChange = false) {
   return (async () => { try { const res = await fn(); if (res && res.error) throw res.error;
       if (mustChange && res && Array.isArray(res.data) && res.data.length === 0) throw new Error(tr('nothing was saved (no permission, or the row no longer exists)'));
       return res && res.data; }
-    catch (e) { console.warn(label, e); notify({type: 'error', message: `${tr(label)}: ${e.message || e}`}); if (slice) { dirty.add(slice); deferredReload = true; } }
+    catch (e) { console.warn(label, e); notify({type: 'error', message: `${tr(label)}: ${tr(String(e.message || e))}`}); /* known database messages are in the dictionary */ if (slice) { dirty.add(slice); deferredReload = true; } }
     finally { done(); } })();
 }
 /* debounced write per key (text inputs); the latest closure wins, callers awaiting earlier keystrokes resolve with it */
@@ -190,7 +190,9 @@ export function addEntry(rowId, oid, taskId) {
   const row = C.rowById(S, rowId); const t = C.taskById(S, taskId); if (!canWriteCard(row) || !t) return;
   const e = {id: 'tmp' + Date.now() + Math.random().toString(36).slice(2), taskId, taskName: t.name, hours: 0, weight: t.weight};
   ensureCell(row, oid).entries.push(e); touch(row);
-  e._ready = write(N_('Add entry'), async () => { const r = await sb.from('entries').insert({period_id: rowId, owner_id: oid, task_id: taskId, task_name: t.name, hours: 0, weight_snapshot: t.weight}).select().single(); if (r.data) e.id = r.data.id; return r; }, 'entries');
+  e._ready = write(N_('Add entry'), async () => { const r = await sb.from('entries').insert({period_id: rowId, owner_id: oid, task_id: taskId, task_name: t.name, hours: 0, weight_snapshot: t.weight}).select().single(); if (r.data) { e.id = r.data.id; const w = +r.data.weight_snapshot || 0;   // the server sets the snapshot (ledger guard) — adopt it if our catalog was stale
+      if (r.data.task_name) e.taskName = r.data.task_name; if (w !== e.weight) { e.weight = w; notify({type: 'data', slices: ['entries']}); } }
+    return r; }, 'entries');
   return e._ready;
 }
 export function setHours(rowId, oid, idx, v) {
