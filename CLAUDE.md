@@ -2,6 +2,7 @@
 
 Static web app on GitHub Pages (https://jooati.github.io/BridgeAID-Cap-Table/), data + auth in Supabase.
 No build step: plain ES modules, CDN libraries only. **Every change: `npm test` must stay green.**
+`npm test` first re-stamps the asset versions in `index.html` (cache busting for GitHub Pages' 10-minute cache) — commit `index.html` together with any CSS/JS change.
 
 ## Layout
 ```
@@ -20,6 +21,7 @@ js/i18n.js            language switcher EN / HU: tr(), tn(), pl(), ymL(), the Hu
 js/app.js             boot, tabs (#hash deep links), toast
 tests/                jsdom tests (node), run with `npm test`
 scripts/seed-example.mjs   dev-only demo data (never exposed in the UI)
+scripts/stamp-assets.mjs   writes content hashes into index.html (css ?v=, import map) — runs before `npm test`
 supabase/schema.sql   source of truth for the DB
 ```
 

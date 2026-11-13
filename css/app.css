@@ -238,3 +238,9 @@ button.pill{border:0;font-family:inherit;cursor:pointer;} button.pill:hover{outl
 .modal .lang-sw button:hover{color:var(--navy);} .modal .lang-sw button.active{color:var(--navy);}
 /* the tab strip may scroll sideways on narrow screens, without a scrollbar changing the header height */
 .topnav{scrollbar-width:none;} .topnav::-webkit-scrollbar{display:none;}
+/* phones: the tab strip gets its own full-width row under the logo and the controls */
+@media(max-width:720px){
+  header.topbar{flex-wrap:wrap;row-gap:6px;}
+  .brand{margin-right:auto;}
+  .topnav{order:10;flex:0 0 100%;justify-content:flex-start;}
+}

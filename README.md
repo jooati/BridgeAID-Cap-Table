@@ -27,6 +27,9 @@ The calculation (in `js/calc.js`) is unchanged from the single-file version — 
 ## Deploy
 
 1. Push to `main`. GitHub Pages serves the repository root (Settings → Pages → *Deploy from a branch*, branch `main`, folder `/`).
+   `index.html` references the stylesheet and every module with a content hash (`?v=…`, import map) so a new deploy never
+   runs with stale cached files; `npm test` (or `npm run stamp`) refreshes the hashes — commit `index.html` with your change.
+   After editing a file directly on GitHub, run `npm run stamp` locally and push, or expect up to 10 minutes of cache.
 2. `js/config.js` holds the Supabase URL and the **anon** key. They are public by design; RLS is the guard.
 3. In Supabase → Authentication → URL Configuration add the site URL (`https://jooati.github.io/BridgeAID-Cap-Table/`) to
    **Redirect URLs** — the *Forgot password* email links back to it.

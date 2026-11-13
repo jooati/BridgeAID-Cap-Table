@@ -55,6 +55,8 @@ function renderTabNav() { $('topNav').innerHTML = TABS.map(t => `<a class="tab-l
 export function goTab(slug, push) {
   const tab = TABS.find(t => t.slug === slug) || TABS[0]; activeTab = tab.slug;
   TABS.forEach(t => { const p = $(t.panel); if (p) { t.slug === tab.slug ? p.removeAttribute('hidden') : p.setAttribute('hidden', ''); } const it = $('navitem-' + t.slug); if (it) it.classList.toggle('active', t.slug === tab.slug); });
+  /* phones: the tab strip scrolls sideways — keep the active tab in view */
+  const nav = $('topNav'), act = $('navitem-' + tab.slug); if (nav && act && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = Math.max(0, act.offsetLeft - nav.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2);
   if (push && window.location.hash.slice(1) !== tab.slug) { try { window.history.pushState({slug: tab.slug}, '', '#' + tab.slug); } catch (e) { /* ignore */ } }
 }
 export function tabFromHash() { const s = window.location.hash.slice(1); return TABS.some(t => t.slug === s) ? s : 'tracker'; }   // land on the tracker by default
